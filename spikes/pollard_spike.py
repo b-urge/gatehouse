@@ -25,7 +25,7 @@ def gemini_fn(payload: dict) -> dict:
     client = genai.Client(
         vertexai=True,
         project=os.environ["GOOGLE_CLOUD_PROJECT"],
-        location=os.environ.get("GOOGLE_CLOUD_LOCATION", "us-central1"),
+        location=os.environ.get("GOOGLE_CLOUD_LOCATION", "global"),
     )
     resp = client.models.generate_content(model=payload["model"], contents=payload["input"])
     usage = getattr(resp, "usage_metadata", None)
@@ -46,6 +46,10 @@ def mock_fn(payload: dict) -> dict:
 
 
 def main() -> None:
+    from dotenv import load_dotenv
+
+    load_dotenv("agents/hello/.env")
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--mock", action="store_true", help="run offline against a mock model fn")
     args = ap.parse_args()
