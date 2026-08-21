@@ -9,10 +9,10 @@ import sys
 
 from dotenv import load_dotenv
 from google import genai
-from google.genai import types
 from google.cloud import firestore
-from google.cloud.firestore_v1.vector import Vector
 from google.cloud.firestore_v1.base_vector_query import DistanceMeasure
+from google.cloud.firestore_v1.vector import Vector
+from google.genai import types
 
 load_dotenv("agents/hello/.env")
 PROJECT = os.environ["GOOGLE_CLOUD_PROJECT"]
@@ -90,7 +90,10 @@ def main():
         d = h.to_dict()
         print(f"  -> [{h.id}] dist={d.get('dist'):.4f}  {d['content'][:70]}")
     top = hits[0].id if hits else None
-    print("\nPASS" if top == "pen_test" else f"\nUNEXPECTED: top hit was {top!r} - paste output back.")
+    if top == "pen_test":
+        print("\nPASS")
+    else:
+        print(f"\nUNEXPECTED: top hit was {top!r} - paste output back.")
 
 
 if __name__ == "__main__":
