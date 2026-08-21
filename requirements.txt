@@ -1,0 +1,6 @@
+google-adk==2.7.1
+google-genai>=1.0
+pollard==1.5.1
+chronofy==0.1.9
+google-cloud-firestore>=2.16
+google-cloud-pubsub>=2.21

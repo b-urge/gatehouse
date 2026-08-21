@@ -1,0 +1,4 @@
+pollard==1.5.1
+chronofy==0.1.9
+pytest>=8
+ruff>=0.5
