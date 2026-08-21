@@ -3,13 +3,15 @@
 All Things Agentic Hackathon · Fortified Enterprise Fleet track.
 Full plan: `gatehouse-build-plan` (shared doc). Deadline: **Aug 31, 5:00 pm PDT**.
 
-**Status (D1 closed, early AM 8/21):** scaffold live, CI green, and the GEAP availability
-audit is fully swept — **6/7 components GREEN** on this account, zero gated, Observability
-deferred until the otel exporter exists (wiring it IS that audit). First Gemini call
-ledgered in pollard; Firestore vector search proven end to end; two endpoint-topology
-discoveries banked. Verdicts + findings: `GEAP-AUDIT.md` — read the findings log before
-debugging anything that smells like a permissions error. Muntaser has GitHub + GCP access
-(editor, granted 8/21). D2 decision gate is effectively cleared; confirm at the morning
+**Status (D1 closed + overnight, 8/21):** scaffold live, CI green, GEAP availability audit
+fully swept — **6/7 components GREEN** on this account, zero gated, Observability deferred
+until the otel exporter exists (wiring it IS that audit). First Gemini call ledgered in
+pollard; Firestore vector search proven end to end; two endpoint-topology discoveries
+banked. **The Acme demo corpus is authored and committed** (`corpus/`) — the freshness
+trap is pre-computed against the real decay constants (stale pen test 0.347 = pruned,
+current 0.932 = valid). Verdicts + findings: `GEAP-AUDIT.md` — read the findings log
+before debugging anything that smells like a permissions error. Muntaser has GitHub +
+GCP access (editor). D2 decision gate is effectively cleared; confirm at the morning
 sync and green-light the D3 build.
 
 ## Setup (clean clone)
@@ -34,19 +36,22 @@ ruff check . && pytest -q                                 # green before you wri
    Any PERMISSION_DENIED here → check `GEAP-AUDIT.md` topology findings before IAM rabbit holes.
 2. **pollard ActionSpec registry + `tool_call` refusal-node spike** — the `model_call`
    wrapper is already proven in `spikes/pollard_spike.py`; extend the same pattern.
-   A registry-refused call recorded as a refusal node is the demo's second gate beat.
+   The poisoned corpus doc (`corpus/acme-vendor-overview.md`) carries a fake
+   `approve_vendor` call — a ready-made refusal-node test subject.
 3. **`[otel]` bridge → Cloud Trace** — export pollard's content-free spans (ADK spans too
    if cheap). Spans visible at console → Trace explorer **completes audit row 7**; flip it
    to GREEN in `GEAP-AUDIT.md` + add a findings line.
-4. Commit spikes under `spikes/`, findings to `GEAP-AUDIT.md`, push — same
-   log-as-you-learn pattern as D1.
+4. Commit spikes under `spikes/`, findings to `GEAP-AUDIT.md`, push — and **run
+   `ruff check . && pytest -q` before every commit** (a 1:45am shortcut turned CI red
+   for three runs; the pipeline caught it, don't repeat it).
 5. Optional if time: poke Memory Bank against the live engine (ID below) —
    `infra/audit/03_memory_bank.py` is the working example.
 
 ## Katie — D2/D3
 
 - Morning sync: confirm decision gate, divide D3 (orchestrator + security-reviewer +
-  dpa-legal-reviewer per plan §4; Acme corpus with timestamps, poisoned doc, stale-pen-test trap).
+  dpa-legal-reviewer per plan §4). ~~Author the Acme corpus~~ **done overnight** — D3
+  starts at chunk/embed/seed from `corpus/manifest.json`.
 - Registry note for D3: "publish an agent" = create a **Service** record (`agents` is
   read/search-only); create flags captured in the D1 audit output.
 - Tidies: remove redundant `modelarmor.admin` grant; confirm $150 hackathon credits landed.
@@ -69,6 +74,10 @@ ruff check . && pytest -q                                 # green before you wri
 
 ## Layout
 
+- `corpus/` — **the Acme demo corpus**: SOC 2 (the MFA finding), dual pen tests (the
+  0.347-vs-0.932 freshness trap), DPA (invariant clauses), poisoned doc (injection
+  payload — do NOT strip it, it IS the demo), distractor, ISO cert + `manifest.json`
+  wiring every doc to its fact_type and expected gate behavior
 - `contracts/` — «Reviewer» / «Enablement» protocols + contract tests (the SOLID diagram points here)
 - `retrieval/validity.py` — chronofy temporal-validity gate (freshness trap proven in `tests/test_validity.py`)
 - `agents/hello/` — ADK smoke agent; real agents land D3
