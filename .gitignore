@@ -6,3 +6,4 @@ evidence/*.db
 !evidence/golden/
 .pytest_cache/
 .ruff_cache/
+.adk/
