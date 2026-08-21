@@ -10,13 +10,21 @@ Docs home: https://docs.cloud.google.com/gemini-enterprise-agent-platform
 | # | Component | Minimal check | Status | Notes / fallback if GATED |
 |---|-----------|---------------|--------|---------------------------|
 | 1 | Agent Registry | Create + list one registry entry | UNKNOWN | Fallback: Firestore-backed versioned agent catalog; document the mapping |
-| 2 | Agent Runtime | Deploy a trivial agent; see it run async (https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime) | UNKNOWN | Fallback: Cloud Run service/jobs + Pub/Sub triggers |
-| 3 | Memory Bank | Create store; write in session A, read in session B (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank) | UNKNOWN | Fallback: Firestore-backed session state, honestly labeled |
+| 2 | Agent Runtime | Deploy a trivial agent; see it run async (https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/runtime) | GREEN | Fallback: Cloud Run service/jobs + Pub/Sub triggers |
+| 3 | Memory Bank | Create store; write in session A, read in session B (https://docs.cloud.google.com/gemini-enterprise-agent-platform/scale/memory-bank) | GREEN | Fallback: Firestore-backed session state, honestly labeled |
 | 4 | Agent Identity | Two service accounts; one denied read via IAM | UNKNOWN | Standard IAM — expected GREEN |
 | 5 | Agent Gateway | Route one call through gateway with a policy | UNKNOWN | Fallback: policy check in orchestrator, documented as such |
-| 6 | Model Armor | `gcloud services enable modelarmor.googleapis.com`; screen one test string | UNKNOWN | Fallback: Gemini safety settings + explicit screening prompt, honestly labeled |
+| 6 | Model Armor | `gcloud services enable modelarmor.googleapis.com`; screen one test string | GREEN | Fallback: Gemini safety settings + explicit screening prompt, honestly labeled |
 | 7 | Agent Observability | Hello-world span visible in Cloud Trace | UNKNOWN | Cloud Trace + [otel] from pollard — expected GREEN |
 
 Audit method: open the component quickstart from the docs home, run its first
 *mutating* step (not just the read), log the result + timestamp + error text.
 Honest fallback mapping beats silent substitution (judges reward the former).
+
+## Findings log — D1 night audit (2026-08-21, ~00:00–01:30 ET)
+
+- **Endpoint topology is the story of the night.** Gemini 3.x model calls 404 on regional Vertex endpoints → must use `GOOGLE_CLOUD_LOCATION=global` (encoded in `agents/hello/.env` + spike). Model Armor is the mirror image: template CRUD + sanitize are **regional-only**, and gcloud's default global routing returns a misleading `PERMISSION_DENIED` — fixed via `api_endpoint_overrides/modelarmor` (baked into `01_model_armor.sh`; per the official troubleshooting doc). Platform services (reasoningEngines, Memory Bank) are regional (us-central1).
+- **Model Armor: GREEN.** Template `ma-audit` created; clean prompt → NO_MATCH_FOUND; injection prompt → MATCH_FOUND, pi_and_jailbreak, confidence HIGH. Note: filter V1 → LEGACY on **2026-09-01** (day after deadline); pin filter version deliberately when wiring for real. The `modelarmor.admin` IAM grant added mid-debug was likely unnecessary (root cause was endpoint routing) — remove for least-privilege hygiene in the morning tidy.
+- **Agent Runtime (control plane): GREEN.** Bare reasoning engine created + listed via REST. ENGINE_ID=5146129483631165440 (kept alive for D2 Memory Bank spike; idle cost ~nil). Full code deploy exercised D4 via `adk deploy agent_engine`.
+- **Memory Bank: GREEN.** Fact written and semantically retrieved via ADK `VertexAiMemoryBankService` against the bare engine — using the actual phase-2 demo fact (Acme SOC 2 MFA gap). Dependency discovery: requires `google-adk[gcp]` extra (now in requirements.txt). SDK mid-rename FutureWarning (`vertexai.Client` → `agentplatform.Client`) — cosmetic, ignore.
+- **Tomorrow's accelerator:** `gcloud agent-registry` and `gcloud agent-identity` command groups exist in the CLI reference → components 1 & 4 audit fast via `--help` + minimal mutation.

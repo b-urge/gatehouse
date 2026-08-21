@@ -1,4 +1,4 @@
-google-adk==2.7.1
+google-adk[gcp]==2.7.1
 google-genai>=1.0
 pollard==1.5.1
 chronofy==0.1.9
