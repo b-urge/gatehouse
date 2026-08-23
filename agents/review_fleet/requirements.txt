@@ -1,0 +1,4 @@
+# Staged with the agent for the Agent Engine image (google-adk arrives via --adk_version).
+chronofy==0.1.9
+python-dotenv>=1.0
+google-cloud-firestore>=2.16

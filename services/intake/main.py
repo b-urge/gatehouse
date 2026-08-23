@@ -83,7 +83,7 @@ def _match_state(filter_result: Any) -> str:
         if inner is not None and getattr(inner, "match_state", None) is not None:
             state = inner.match_state
             name = getattr(state, "name", str(state))
-            if name and name != "MATCH_STATE_UNSPECIFIED":
+            if name and not name.endswith("_UNSPECIFIED"):
                 return name
     return "NO_MATCH_FOUND"
 
