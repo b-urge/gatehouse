@@ -1,10 +1,13 @@
 # Muntaser — handoff (evening 8/23, post-D4 build)
 
-**State:** review fleet runs end-to-end locally (`adk run agents/review_fleet` →
-"Review vendor acme-saas-inc.") and is deployed/deploying to Agent Engine; intake
-(Cloud Run + Model Armor inline) and the Pub/Sub dispatcher are live. Your lane is
-the **evidence plane** — everything below is local-first; please don't redeploy the
-Cloud Run services or the fleet engine tonight (Katie's loop).
+**State:** the review fleet runs end-to-end locally (`adk run agents/review_fleet` →
+"Review vendor acme-saas-inc." → grounded findings, live 0.347 freshness prune,
+synthesized risk score). Intake is live on Cloud Run with Model Armor inline
+(202 clean / 403 pi_and_jailbreak, smoke-proven). The Agent Engine deploy and the
+Pub/Sub→fleet dispatcher are **scripted but not yet run** — Katie runs
+`infra/deploy_runtime.sh` + `infra/wire_dispatch.sh` first thing tomorrow. Your
+lane is the **evidence plane**; everything below is local-first. Please don't
+deploy or redeploy any cloud services tonight (Katie's loop).
 
 ## 1. Pollard wiring (the "prove what was consulted" leg of the triad)
 - `retrieval/search.py` → `ValidityGatedRetriever(on_consultation=...)` is your
@@ -18,12 +21,14 @@ Cloud Run services or the fleet engine tonight (Katie's loop).
   feed it the payload from `corpus/acme-vendor-overview.md` (do not strip it — it IS
   the demo prop). Acceptance: `pollard runs` / `pollard show` display the refusal node.
 
-## 2. [otel] bridge → Cloud Trace (GEAP audit row 7)
-- Fleet deploys with `--otel_to_cloud` (see `infra/deploy_runtime.sh`) — check
-  https://console.cloud.google.com/traces/list?project=gatehouse-hackathon first;
-  Agent Engine spans may already be flowing. Your part: pollard `[otel]`
-  content-free spans joining them. Acceptance: spans visible → flip row 7 in
-  `GEAP-AUDIT.md` to GREEN + add a findings-log line, commit.
+## 2. [otel] → Cloud Trace (GEAP audit row 7) — prep tonight, verify after the deploy
+- The fleet deploy script carries `--otel_to_cloud`, but it has NOT run yet, so
+  Cloud Trace is expected to be empty tonight — an empty explorer is not a failure.
+- Tonight: build the pollard `[otel]` content-free span export locally.
+- After Katie's morning deploy: check
+  https://console.cloud.google.com/traces/list?project=gatehouse-hackathon —
+  engine spans + your pollard spans visible → flip row 7 in `GEAP-AUDIT.md` to
+  GREEN + add a findings-log line, commit.
 
 ## 3. House rules (learned the hard way; details in GEAP-AUDIT findings)
 - `ruff check . && pytest -q` before every commit. CI installs ONLY
@@ -33,17 +38,13 @@ Cloud Run services or the fleet engine tonight (Katie's loop).
   `us-central1`; Model Armor CLI needs the regional override (scripted).
 - Setup from clean clone: README top section; you have GCP editor already.
 
-## Live resources (current as of 8/23 evening — build against these, clobber nothing)
-- Cloud Run `gatehouse-intake` @ us-central1 — Model Armor inline; smoke-proven (202 clean / 403 pi_and_jailbreak)
-- Cloud Run `gatehouse-dispatch` @ us-central1 — Pub/Sub push -> fleet streamQuery
-- Pub/Sub: topic `vendor-docs-received`; subs `-debug` (disposable) and `-dispatch` (push, 600s ack)
-- **Engines — two exist, don't mix them:** D1 bare audit engine `5146129483631165440`
-  (hosts the Memory Bank audit fact; leave alone) and the fleet engine
-  `gatehouse-review-fleet` (id via `infra/deploy_runtime.sh`'s closing list — the
-  labeled one). Never `--agent_engine_id` against the bare one.
-- **Runtime deploy status:** [Katie: one honest line — e.g. "deployed, e2e log showed
-  'fleet done'" / "deployed, wire_dispatch not yet run" / "deploy not yet run — my
-  first item tomorrow; your otel check waits on it"]
+## Live resources (verified 8/23 late — build against these, clobber nothing)
+- Cloud Run `gatehouse-intake` @ us-central1 — Model Armor inline; smoke-proven
+- Pub/Sub: topic `vendor-docs-received`; sub `-debug` (disposable). The `-dispatch`
+  push subscription arrives with tomorrow's wire step.
+- **Engine:** D1 bare audit engine `5146129483631165440` (hosts the Memory Bank
+  audit fact — leave alone). The fleet engine does not exist yet; after tomorrow's
+  deploy there will be two — never `--agent_engine_id` against the bare one.
 - Firestore: `corpus_chunks` (31 chunks + 768-dim COSINE index), `audit_chunks`, `vendors`
 - Model Armor template `ma-audit` @ us-central1 (V1 -> LEGACY 9/1 — pin when touching)
 
