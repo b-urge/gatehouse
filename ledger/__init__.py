@@ -12,6 +12,7 @@ Environment (all optional):
   GATEHOUSE_QUERY_TIME    ISO as-of time pinned for every retrieval in a review
                           (golden runs; default: now, pinned once per review)
   GATEHOUSE_RUN_LABEL     fixed run label so a golden run can be replayed by name
+  GATEHOUSE_LEDGER_TRACE  0 to silence the content-free OpenTelemetry spans (default on)
 
 Inspect:  pollard runs evidence/runs.db  /  pollard show evidence/runs.db <root-id>
 """
@@ -88,6 +89,10 @@ def configure(
     registry = build_registry(
         retrieve_evidence=_retrieval_handler(retriever or ValidityGatedRetriever())
     )
+    if on_node is None:  # content-free spans to whatever OTel provider is installed
+        from ledger.tracing import ledger_span_hook
+
+        on_node = ledger_span_hook()
     with _lock:
         _runtime = Runtime(
             store,

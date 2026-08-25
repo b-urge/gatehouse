@@ -9,6 +9,7 @@ payload, and the digest of the registry that blocked it. No handler runs.
 
   python spikes/refusal_spike.py                 # records to evidence/runs.db
   python spikes/refusal_spike.py --db other.db
+  python spikes/refusal_spike.py --trace         # + the content-free OTel spans, on stdout
 
 Then inspect the ledger:
   pollard runs evidence/runs.db
@@ -90,8 +91,15 @@ def run_spike(db: str | Path, doc: Path = POISONED_DOC) -> dict[str, Any]:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--db", default=ledger.DEFAULT_DB, help="ledger sqlite path")
+    ap.add_argument(
+        "--trace", action="store_true", help="print the spans Cloud Trace would receive"
+    )
     args = ap.parse_args()
 
+    if args.trace:
+        from ledger.tracing import local_tracing
+
+        local_tracing("console")
     out = run_spike(args.db)
     refusal, report = out["refusal"], out["report"]
     print(f"poisoned doc : {POISONED_DOC.relative_to(REPO)}")
