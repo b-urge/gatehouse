@@ -73,7 +73,7 @@ def test_live_spans_are_content_free_and_carry_the_ids(spans):
     }
     tool = by_name["execute_tool retrieve_evidence"]
     assert tool.attributes["pollard.node.id"] == node.id
-    assert tool.attributes["pollard.parent.id"] == review.root_id
+    assert tool.attributes["pollard.parent.id"] == node.parent  # the review_opened note
     assert tool.attributes["pollard.result.digest"] == node.result_digest
     assert tool.attributes["pollard.registry.digest"] == ledger.runtime().registry.registry_digest
     assert tool.attributes["pollard.charge.steps"] == 1
@@ -101,11 +101,13 @@ def test_export_run_rebuilds_a_parented_tree(spans, monkeypatch):
 
     count = export_run(review.run.store, review.root_id, tracer())
 
-    assert count == 3
+    assert count == 4  # root, review_opened, two searches
     exported = {s.attributes["pollard.node.id"]: s for s in spans.get_finished_spans()}
     root, a, b = exported[review.root_id], exported[first.id], exported[second.id]
+    opened = exported[first.parent]
     assert root.parent is None
-    assert a.parent.span_id == root.context.span_id
+    assert opened.parent.span_id == root.context.span_id
+    assert a.parent.span_id == opened.context.span_id
     assert b.parent.span_id == a.context.span_id
     assert root.context.trace_id == a.context.trace_id == b.context.trace_id
 
@@ -125,5 +127,9 @@ def test_under_adk_the_ledger_span_nests_beneath_the_tool_span(spans):
         adk_tool_span = by_id[span.parent.span_id]
         assert adk_tool_span.name == "execute_tool search_vendor_evidence"
         assert span.context.trace_id == adk_tool_span.context.trace_id
+    model_spans = [s for s in finished if s.name == "chat scripted"]
+    assert len(model_spans) == 5  # every Gemini call, each under ADK's call_llm span
+    assert {by_id[s.parent.span_id].name for s in model_spans} == {"call_llm"}
+    assert all(s.attributes["gen_ai.request.model"] == "scripted" for s in model_spans)
     cited = {json.loads(state["security_findings"])[0]["evidence_node"]}
     assert cited <= {s.attributes["pollard.node.id"] for s in ledger_spans}

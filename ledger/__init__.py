@@ -24,13 +24,13 @@ import os
 import sqlite3
 import threading
 import warnings
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from pollard import MemoryStore, Node, ReplayMode, Runtime, Store
-from pollard.meters import DepthMeter, StepMeter, WallClockMeter
+from pollard import MemoryStore, Node, NodeKind, ReplayMode, Runtime, Store
+from pollard.meters import DepthMeter, StepMeter, TokenMeter, WallClockMeter
 from pollard.runtime import Run
 
 from actions import RETRIEVE_EVIDENCE, RETRIEVE_EVIDENCE_VERSION, build_registry
@@ -44,6 +44,19 @@ _runtime: Runtime | None = None
 _reviews: dict[str, ReviewRun] = {}
 
 
+class ModelTokenMeter(TokenMeter):
+    """pollard's token meter, charging model calls only (tool results carry no usage)."""
+
+    def charge(self, node_kind: str, payload: dict, result: Any, meta: dict) -> int:
+        if node_kind != NodeKind.MODEL_CALL.value:
+            return 0
+        return super().charge(node_kind, payload, result, meta)
+
+
+def _unreachable(payload: dict[str, Any]) -> dict[str, Any]:
+    raise AssertionError("a served ledger node must not call the model")
+
+
 @dataclass
 class ReviewRun:
     """One vendor review's slice of the ledger."""
@@ -52,15 +65,40 @@ class ReviewRun:
     vendor_id: str
     invocation_id: str
     query_time: str  # ISO; every retrieval in this review is as-of this instant
+    pending_model_calls: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     @property
     def root_id(self) -> str:
         return self.run.root_id
 
+    @property
+    def mode(self) -> ReplayMode:
+        return runtime().mode
+
     def consult(self, query: str, *, k: int = DEFAULT_K) -> Node:
         """Registered retrieval. Raises PolicyViolation if the registry refuses it."""
         args = {"query": query, "query_time": self.query_time, "k": int(k)}
         return self.run.tool_call(RETRIEVE_EVIDENCE, args, version=RETRIEVE_EVIDENCE_VERSION)
+
+    def recorded_model_call(self, payload: dict[str, Any]) -> Node | None:
+        """Replay/hybrid: the node already recorded for this request at the cursor, if any.
+        Serving it advances the cursor and books the avoided charges. Strict replay raises
+        pollard's MissingRecording when the conversation diverges from the recording."""
+        if self.mode == ReplayMode.RECORD:
+            return None
+        candidate = Node.make(
+            kind=NodeKind.MODEL_CALL, parent=self.run.cursor_id, payload=payload, attempt=0
+        )
+        store = self.run.store
+        if self.mode == ReplayMode.HYBRID and not (
+            store.exists(candidate.id) and store.get(candidate.id).result_text is not None
+        ):
+            return None
+        return self.run.model_call(payload, fn=_unreachable)
+
+    def record_model_call(self, payload: dict[str, Any], result: dict[str, Any]) -> Node:
+        """Record a response ADK already obtained; pollard meters its usage."""
+        return self.run.model_call(payload, fn=lambda _payload: result)
 
 
 def _retrieval_handler(retriever: ValidityGatedRetriever) -> Callable[[dict], dict]:
@@ -98,8 +136,7 @@ def configure(
         return Runtime(
             target,
             registry=registry,
-            # No TokenMeter until model calls are recorded: tool results carry no usage.
-            meters=[StepMeter(), DepthMeter(), WallClockMeter()],
+            meters=[StepMeter(), DepthMeter(), WallClockMeter(), ModelTokenMeter()],
             mode=mode,
             on_node=on_node,
         )
@@ -152,16 +189,33 @@ def pin_query_time(explicit: datetime | str | None = None) -> str:
 def open_review_run(
     invocation_id: str, vendor_id: str, *, query_time: datetime | str | None = None
 ) -> ReviewRun:
-    label = review_label(vendor_id, invocation_id)
+    """Open (or re-enter) the review's run. The first node is a `review_opened` note
+    carrying the vendor and the pinned as-of time, so a recording is self-describing:
+    in replay/hybrid the pinned time comes from the recording, not the environment."""
+    run = runtime().run(review_label(vendor_id, invocation_id))
+    opened = _recorded_opening(run)
+    if opened is not None and query_time is None:
+        vendor_id, query_time = opened["vendor_id"], opened["query_time"]
     review = ReviewRun(
-        run=runtime().run(label),
+        run=run,
         vendor_id=vendor_id,
         invocation_id=invocation_id,
         query_time=pin_query_time(query_time),
     )
+    run.note({"kind": "review_opened", "vendor_id": vendor_id, "query_time": review.query_time})
     with _lock:
         _reviews[invocation_id] = review
     return review
+
+
+def _recorded_opening(run: Run) -> dict[str, Any] | None:
+    if runtime().mode == ReplayMode.RECORD:
+        return None
+    for child_id in run.store.children(run.root_id):
+        child = run.store.get(child_id)
+        if child.kind == NodeKind.NOTE and child.payload.get("kind") == "review_opened":
+            return dict(child.payload)
+    return None
 
 
 def get_review_run(invocation_id: str) -> ReviewRun | None:

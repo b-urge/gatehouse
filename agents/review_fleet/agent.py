@@ -11,10 +11,12 @@ still considers valid, and every pruned document arrives as an explicit
 re-acquisition notice (the freshness-trap beat).
 
 Evidence plane (plan §3, §5): the orchestrator opens one pollard run per review
-(before_agent_callback), every search is the registered `retrieve_evidence@1`
+(before_agent_callback); every Gemini call is a MODEL_CALL node (the ledger/adk
+callback pair, which also serves recorded responses in replay mode so the whole
+review reruns offline); every search is the registered `retrieve_evidence@1`
 action recorded as a TOOL_CALL node whose id the reviewer cites as
-`evidence_node`, and the final verdict is noted under the run
-(after_agent_callback). `pollard show evidence/runs.db <root-id>` replays it.
+`evidence_node`; and the final verdict is noted under the run
+(after_agent_callback). `pollard show evidence/runs.db <root-id>` renders it.
 
 Run:  cp agents/hello/.env agents/review_fleet/.env  &&  adk run agents/review_fleet
 Try:  "Review vendor acme-saas-inc."
@@ -34,6 +36,7 @@ from pollard import PolicyViolation
 
 import ledger
 from contracts.reviewer import Finding, ReviewResult  # noqa: F401  (contract this fleet honors)
+from ledger import adk as ledger_adk
 
 MODEL = "gemini-3.5-flash"
 DEFAULT_VENDOR = "acme-saas-inc"
@@ -115,6 +118,8 @@ def build_fleet(model: str | BaseLlm = MODEL) -> SequentialAgent:
     security_reviewer = Agent(
         name="security_reviewer",
         model=model,
+        before_model_callback=ledger_adk.before_model,
+        after_model_callback=ledger_adk.after_model,
         description="Reviews vendor security posture from SOC 2 / pen test evidence.",
         instruction=(
             "You are the security reviewer in a vendor-risk fleet. Use "
@@ -132,6 +137,8 @@ def build_fleet(model: str | BaseLlm = MODEL) -> SequentialAgent:
     dpa_legal_reviewer = Agent(
         name="dpa_legal_reviewer",
         model=model,
+        before_model_callback=ledger_adk.before_model,
+        after_model_callback=ledger_adk.after_model,
         description="Reviews the vendor DPA: residency, subprocessors, breach terms.",
         instruction=(
             "You are the DPA/legal reviewer in a vendor-risk fleet. Use "
@@ -149,6 +156,8 @@ def build_fleet(model: str | BaseLlm = MODEL) -> SequentialAgent:
     review_synthesizer = Agent(
         name="review_synthesizer",
         model=model,
+        before_model_callback=ledger_adk.before_model,
+        after_model_callback=ledger_adk.after_model,
         description="Assembles the fleet's findings into one ReviewResult.",
         instruction=(
             "Assemble the final vendor review. Security findings: {security_findings}. "
