@@ -24,6 +24,7 @@ class ReviewResult:
     vendor_id: str
     findings: list[Finding] = field(default_factory=list)
     risk_score: float = 0.0
+    evidence_run: str = "unrecorded"  # pollard root id of the run that produced this review
 
 
 @runtime_checkable
