@@ -2,3 +2,4 @@ flask>=3
 gunicorn>=21
 google-cloud-modelarmor>=0.2
 google-cloud-pubsub>=2.21
+pollard==1.5.1

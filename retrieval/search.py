@@ -51,6 +51,35 @@ class RetrievalResult:
     stl_robustness: float = 0.0
     evidence_node: str = "unrecorded"
 
+    def to_dict(self) -> dict:
+        """The consultation as the ledger records it and the reviewer receives it."""
+        return {
+            "valid_evidence": [
+                {
+                    "chunk_id": h.chunk_id,
+                    "doc_id": h.doc_id,
+                    "fact_type": h.fact_type,
+                    "issued": h.issued,
+                    "validity": round(h.validity, 3),
+                    "content": h.content,
+                }
+                for h in self.valid
+            ],
+            "pruned_evidence": [
+                {
+                    "chunk_id": h.chunk_id,
+                    "doc_id": h.doc_id,
+                    "fact_type": h.fact_type,
+                    "issued": h.issued,
+                    "validity": round(h.validity, 3),
+                }
+                for h in self.pruned
+            ],
+            "pruned_notices": self.reacquisition_notices(),
+            "stl_satisfied": self.stl_satisfied,
+            "stl_robustness": round(self.stl_robustness, 3),
+        }
+
     def reacquisition_notices(self) -> list[str]:
         """Human-readable prune notices — these become re-acquisition findings."""
         return [

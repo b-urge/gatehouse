@@ -15,7 +15,7 @@ Docs home: https://docs.cloud.google.com/gemini-enterprise-agent-platform
 | 4 | Agent Identity | Two service accounts; one denied read via IAM | GREEN | Standard IAM — expected GREEN |
 | 5 | Agent Gateway | Route one call through gateway with a policy | GREEN | Fallback: policy check in orchestrator, documented as such |
 | 6 | Model Armor | `gcloud services enable modelarmor.googleapis.com`; screen one test string | GREEN | Fallback: Gemini safety settings + explicit screening prompt, honestly labeled |
-| 7 | Agent Observability | Hello-world span visible in Cloud Trace | DEFERRED (wire otel D2) | Cloud Trace + [otel] from pollard — expected GREEN |
+| 7 | Agent Observability | Hello-world span visible in Cloud Trace | WIRED (local-verified; Cloud Trace check pending fleet deploy) | Cloud Trace + [otel] from pollard — `ledger/tracing.py`; flip to GREEN once a `execute_tool retrieve_evidence` span shows in the Trace explorer (HANDOFF-KATIE.md step D) |
 
 Audit method: open the component quickstart from the docs home, run its first
 *mutating* step (not just the read), log the result + timestamp + error text.
@@ -38,3 +38,10 @@ Honest fallback mapping beats silent substitution (judges reward the former).
 - **Agent Observability: DEFERRED by design** — empty Cloud Trace ≠ gated; [otel] wiring is D2, verified then.
 - APIs enabled mid-audit via gcloud self-prompts: networkservices, agentregistry, agent-identity.
 - **D2 decision gate: effectively cleared ~40h early.** 6/7 GREEN, 1 deferred-by-design, zero GATED, all fallbacks unused. Architecture green-lit as drawn (Registry services/bindings note folds into D3).
+
+## Findings log — D5 evidence plane (2026-08-24 night, Muntaser, offline)
+
+- **Observability wired, verified locally, Cloud Trace pending.** `ledger/tracing.py` emits one content-free span per pollard node (ids + digests, never payloads) via `pollard.otel.live_span_hook`, joined to whatever TracerProvider is installed — ADK's `--otel_to_cloud` provider on Agent Engine, an in-memory/console exporter locally. `tests/test_tracing.py` asserts under ADK's own runner that the pollard span nests beneath ADK's `execute_tool search_vendor_evidence` span (same trace id) and that the query text, evidence content, vendor id and blocked payload appear in no attribute. `python spikes/refusal_spike.py --trace` prints the spans. **Row 7 → GREEN when Katie sees `execute_tool retrieve_evidence` in the Trace explorer after the fleet deploy** (HANDOFF-KATIE.md, step D).
+- **Registry firewall is real.** `approve_vendor(status="approved")`, parsed from the poisoned corpus doc, produces a `REFUSAL` node (reason `policy`, blocked-payload digest `e91e13b5…`, registry digest `8dc1857e…`) — identical digests on two machines, as content addressing promises. Nothing runs; `pollard show` renders `[REFUSED]`.
+- **Every retrieval is a node; replay works without the cloud.** The fleet's search is the registered `retrieve_evidence@1` handler, so `GATEHOUSE_LEDGER_MODE=replay` serves recorded consultations with Firestore/embeddings provably unreached (`report()["avoided"]["steps"]`). pollard identity payloads reject floats (results don't) — the ReviewResult is noted as JSON text.
+- **Intake verdicts are nodes without the text.** `sensitive` schema fields make pollard store a content-committing digest of the document instead of the document; a Model Armor client exception becomes a `FAILURE` verdict inside the node, so `decide()` fails closed on the record.

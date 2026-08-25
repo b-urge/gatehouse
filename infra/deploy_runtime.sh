@@ -13,6 +13,8 @@ adk deploy agent_engine \
   --otel_to_cloud \
   --extra_packages contracts \
   --extra_packages retrieval \
+  --extra_packages actions \
+  --extra_packages ledger \
   agents/review_fleet
 
 echo
