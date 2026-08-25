@@ -13,8 +13,11 @@ Design notes:
   STABLE, which is V1 until 2026-09-01 (day after the deadline) — acceptable
   for the hackathon window and recorded in GEAP-AUDIT.md. Pinning happens at
   the template, not per-request.
-- Evidence plane: the verdict dict returned/logged here is shaped for pollard;
-  wiring it as a ledger node is the D4 evidence task (Muntaser's lane).
+- Evidence plane: every request is one pollard run (`intake:<vendor>:<doc>`).
+  The screening verdict + decision is the `screen_document@1` node, the publish
+  is the `publish_intake@1` node; both ids ride the response and the event so
+  the review fleet can chain its own run to them. The document text never
+  enters the ledger — only a content-committing digest (see evidence.py).
 """
 
 from __future__ import annotations
@@ -24,11 +27,12 @@ import os
 from typing import Any, Callable
 
 from flask import Flask, jsonify, request
+from pollard import Runtime
 
 try:  # package context (tests: services.intake.main)
-    from .screening import decide
+    from .evidence import build_runtime, intake_label, record_publish, record_screening
 except ImportError:  # Cloud Run buildpack context (gunicorn main:app, CWD=services/intake)
-    from screening import decide
+    from evidence import build_runtime, intake_label, record_publish, record_screening
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "gatehouse-hackathon")
 LOCATION = os.environ.get("MA_LOCATION", "us-central1")
@@ -39,6 +43,7 @@ app = Flask(__name__)
 
 _screen_fn: Callable[[str], dict] | None = None
 _publish_fn: Callable[[dict], str] | None = None
+_runtime: Runtime | None = None
 
 
 def _default_screen_fn() -> Callable[[str], dict]:
@@ -120,6 +125,18 @@ def get_publish_fn() -> Callable[[dict], str]:
     return _publish_fn
 
 
+def get_runtime() -> Runtime:
+    """The process ledger. Handlers resolve the cloud fns per call, so tests can
+    swap `_screen_fn`/`_publish_fn` without rebuilding the runtime."""
+    global _runtime
+    if _runtime is None:
+        _runtime = build_runtime(
+            screen=lambda text: get_screen_fn()(text),
+            publish=lambda event: get_publish_fn()(event),
+        )
+    return _runtime
+
+
 @app.get("/healthz")
 def healthz():
     return jsonify({"ok": True, "template": TEMPLATE, "topic": TOPIC})
@@ -134,18 +151,27 @@ def intake():
     if not (vendor_id and doc_id and text):
         return jsonify({"error": "vendor_id, doc_id, text are required"}), 400
 
-    verdict = get_screen_fn()(text)
-    allowed, reason = decide(verdict)
-    if not allowed:
-        # The poisoned-doc beat: the payload never crosses the gate.
+    run = get_runtime().run(intake_label(vendor_id, doc_id))
+    screened = record_screening(run, vendor_id=vendor_id, doc_id=doc_id, text=text)
+    verdict, decision = screened.result["verdict"], screened.result["decision"]
+    ledger_refs = {"screen_node": screened.id, "intake_run": run.root_id}
+    if not decision["allowed"]:
+        # The poisoned-doc beat: the payload never crosses the gate — but the verdict did
+        # enter the ledger, under a digest of the text rather than the text itself.
         return jsonify(
-            {"accepted": False, "reason": reason, "verdict": verdict, "doc_id": doc_id}
+            {"accepted": False, "reason": decision["reason"], "verdict": verdict, "doc_id": doc_id}
+            | ledger_refs
         ), 403
 
-    message_id = get_publish_fn()(
-        {"vendor_id": vendor_id, "doc_id": doc_id, "text": text, "screen": reason}
+    published = record_publish(
+        run,
+        {"vendor_id": vendor_id, "doc_id": doc_id, "text": text, "screen": decision["reason"]}
+        | ledger_refs,
     )
-    return jsonify({"accepted": True, "doc_id": doc_id, "message_id": message_id}), 202
+    return jsonify(
+        {"accepted": True, "doc_id": doc_id, "message_id": published.result["message_id"]}
+        | ledger_refs
+    ), 202
 
 
 if __name__ == "__main__":
