@@ -21,13 +21,15 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import threading
+import warnings
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from pollard import Node, ReplayMode, Runtime, Store
+from pollard import MemoryStore, Node, ReplayMode, Runtime, Store
 from pollard.meters import DepthMeter, StepMeter, WallClockMeter
 from pollard.runtime import Run
 
@@ -81,11 +83,9 @@ def configure(
     """Build the process-wide Runtime. Fleet code lets the environment decide;
     tests pass a MemoryStore/tmp path and a fake retriever."""
     global _runtime
-    mode = mode or os.environ.get("GATEHOUSE_LEDGER_MODE", ReplayMode.RECORD)
+    mode = ReplayMode(mode or os.environ.get("GATEHOUSE_LEDGER_MODE", ReplayMode.RECORD))
     if store is None:
         store = os.environ.get("GATEHOUSE_EVIDENCE_DB", DEFAULT_DB)
-    if isinstance(store, (str, Path)) and ReplayMode(mode) != ReplayMode.REPLAY:
-        Path(store).parent.mkdir(parents=True, exist_ok=True)
     registry = build_registry(
         retrieve_evidence=_retrieval_handler(retriever or ValidityGatedRetriever())
     )
@@ -93,15 +93,32 @@ def configure(
         from ledger.tracing import ledger_span_hook
 
         on_node = ledger_span_hook()
-    with _lock:
-        _runtime = Runtime(
-            store,
+
+    def build(target: str | Path | Store) -> Runtime:
+        return Runtime(
+            target,
             registry=registry,
             # No TokenMeter until model calls are recorded: tool results carry no usage.
             meters=[StepMeter(), DepthMeter(), WallClockMeter()],
             mode=mode,
             on_node=on_node,
         )
+
+    with _lock:
+        try:
+            if isinstance(store, (str, Path)) and mode != ReplayMode.REPLAY:
+                Path(store).parent.mkdir(parents=True, exist_ok=True)
+            _runtime = build(store)
+        except (OSError, sqlite3.Error) as exc:
+            # A ledger that cannot open must not take the review down with it. Recording
+            # in memory keeps node ids (content-addressed) and the Cloud Trace spans intact.
+            warnings.warn(
+                f"ledger store {store!r} unavailable ({type(exc).__name__}: {exc}); "
+                "recording in memory for this process",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            _runtime = build(MemoryStore())
         _reviews.clear()
     return _runtime
 

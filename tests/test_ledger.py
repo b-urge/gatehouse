@@ -133,3 +133,13 @@ def test_replay_serves_the_recorded_consultation_offline(tmp_path, monkeypatch):
     assert replayed.result == recorded.result
     report = ledger.close_review_run("other-inv", review_result="{}")
     assert report["avoided"].get("steps") == 1.0
+
+
+def test_unwritable_store_falls_back_to_memory_with_a_warning(tmp_path):
+    blocker = tmp_path / "not-a-dir"
+    blocker.write_text("")  # a file where the ledger wants a directory
+    with pytest.warns(RuntimeWarning, match="recording in memory"):
+        runtime = ledger.configure(store=blocker / "runs.db", retriever=fake_retriever())
+    assert isinstance(runtime.store, MemoryStore)
+    node = ledger.open_review_run("inv-1", "acme-saas-inc").consult("mfa")
+    assert node.kind == NodeKind.TOOL_CALL  # the review proceeds, ledgered in memory
