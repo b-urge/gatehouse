@@ -1,86 +1,112 @@
 # Gatehouse — Vendor Lifecycle Fleet
 
-All Things Agentic Hackathon · Fortified Enterprise Fleet track.
-Full plan: `gatehouse-build-plan` (shared doc). Deadline: **Aug 31, 5:00 pm PDT**.
+All Things Agentic Hackathon · Fortified Enterprise Fleet track · **Submission: Aug 31, 5:00 pm PDT.**
 
-**Status (D1 closed + overnight, 8/21):** scaffold live, CI green, GEAP availability audit
-fully swept — **6/7 components GREEN** on this account, zero gated, Observability deferred
-until the otel exporter exists (wiring it IS that audit). First Gemini call ledgered in
-pollard; Firestore vector search proven end to end; two endpoint-topology discoveries
-banked. **The Acme demo corpus is authored and committed** (`corpus/`) — the freshness
-trap is pre-computed against the real decay constants (stale pen test 0.347 = pruned,
-current 0.932 = valid). Verdicts + findings: `GEAP-AUDIT.md` — read the findings log
-before debugging anything that smells like a permissions error. Muntaser has GitHub +
-GCP access (editor). D2 decision gate is effectively cleared; confirm at the morning
-sync and green-light the D3 build.
+A vendor's whole lifecycle as one autonomous, evidence-receipted pipeline: documents arrive at
+a guarded door, a review fleet grounds findings in temporally-valid evidence, an approval gate
+decides, and an enablement agent onboards the vendor with training **conditioned on what the
+review actually found** — every consultation and action content-addressed in a cryptographic
+ledger, every hop traced content-free to Cloud Trace.
+
+> Firestore finds what's similar; chronofy decides what's still true enough to rely on;
+> pollard proves what was consulted.
+
+**Status: the full lifecycle runs autonomously in the cloud.** One `POST /intake` produces —
+with zero humans — a Model Armor screen, a Pub/Sub event, a three-agent review on Agent
+Engine (validity-gated retrieval, freshness-trap pruning, ledgered evidence nodes), a
+risk-threshold approval, a `vendor-approved` event, and an enablement run that recalls the
+findings from Memory Bank and executes three registered actions with Firestore receipts.
+First full lap completed 8/26 — via Pub/Sub redelivery after two transient faults, i.e. the
+pipeline **self-healed**. All **7/7 GEAP components GREEN** and load-bearing
+(`GEAP-AUDIT.md`, findings log included). ~50 tests green; CI runs a slim env by design.
+
+## The beats, and how to see them
+
+- **Poisoned doc blocked at the door** — `bash infra/setup_intake.sh` smoke: injection →
+  403 `pi_and_jailbreak` with `screen_node` + `intake_run` evidence ids on the verdict.
+- **Freshness trap** — the 2025 pen test is *clean but stale*: validity decays below 0.5,
+  the gate prunes it, and the reviewer files an EVIDENCE-STALE re-acquisition finding.
+  Reproducible arithmetic: `python infra/seed_corpus.py --dry-run`.
+- **Registry firewall, live** — the poisoned doc's `approve_vendor(...)` call is not a
+  registered action; it becomes a REFUSAL node (`spikes/refusal_spike.py`, and in-agent in
+  `tests/test_enablement_agent.py`).
+- **Memory-conditioned enablement** (the differentiator): the review stores findings to
+  Memory Bank; the enablement agent recalls them and generates
+  *"MFA Setup for Acme SaaS Inc. Legacy Tier"* — the training teaches the exact gap the
+  review found (`conditioned_on: ["CC6.1", "DPA §7.1"]`), then writes ticket/module/comms
+  with ledger receipts.
+- **Local two-session demo:**
+  `adk run agents/review_fleet` → "Review vendor acme-saas-inc." (watch `[memory] stored N`)
+  → then `adk run agents/enablement` → "Vendor acme-saas-inc approved. Run enablement."
+- **Cloud lifecycle e2e:** POST a clean doc to the intake URL, then
+  `gcloud run services logs read gatehouse-dispatch --region us-central1` — the four-line
+  story: `fleet done` → `approval: APPROVED … published` → `enable: …` → `enablement done`.
+- **Golden run:** `evidence/golden/review-acme-golden.db` (`golden-acme-v1`, 17 nodes,
+  query_time pinned) — inspect with `pollard runs` / `pollard show`; offline replay wiring
+  is in progress (below).
 
 ## Setup (clean clone)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt -r requirements-dev.txt   # includes google-adk[gcp]
-cp agents/hello/.env.example agents/hello/.env            # global endpoint pre-set (see topology)
+pip install -r requirements.txt -r requirements-dev.txt
+cp agents/review_fleet/.env.example agents/review_fleet/.env   # global endpoint + memory engine pre-set
 gcloud auth login && gcloud auth application-default login
-gcloud config set project gatehouse-hackathon             # jemsbhai@gmail.com already granted editor
-ruff check . && pytest -q                                 # green before you write anything
+gcloud config set project gatehouse-hackathon
+ruff check . && pytest -q     # house rule: this gate before every commit
 ```
 
-## Muntaser — D2 checklist
+## Endpoint topology (read before debugging "permissions" — hard-won D1/D4 findings)
 
-1. **Prove your access first** (fresh IAM; catch auth issues before they masquerade as bugs):
-```bash
-   adk run agents/hello                    # live Gemini 3.5 Flash; 'exit' to quit
-   python spikes/pollard_spike.py          # same call, ledgered -> evidence/runs.db
-   python infra/audit/04_vector_search.py  # embeddings + find_nearest (index exists)
-```
-   Any PERMISSION_DENIED here → check `GEAP-AUDIT.md` topology findings before IAM rabbit holes.
-2. **pollard ActionSpec registry + `tool_call` refusal-node spike** — the `model_call`
-   wrapper is already proven in `spikes/pollard_spike.py`; extend the same pattern.
-   The poisoned corpus doc (`corpus/acme-vendor-overview.md`) carries a fake
-   `approve_vendor` call — a ready-made refusal-node test subject.
-3. **`[otel]` bridge → Cloud Trace** — export pollard's content-free spans (ADK spans too
-   if cheap). Spans visible at console → Trace explorer **completes audit row 7**; flip it
-   to GREEN in `GEAP-AUDIT.md` + add a findings line.
-4. Commit spikes under `spikes/`, findings to `GEAP-AUDIT.md`, push — and **run
-   `ruff check . && pytest -q` before every commit** (a 1:45am shortcut turned CI red
-   for three runs; the pipeline caught it, don't repeat it).
-5. Optional if time: poke Memory Bank against the live engine (ID below) —
-   `infra/audit/03_memory_bank.py` is the working example.
+- **Gemini models + embeddings → the `global` endpoint**; regional 404s.
+- **Platform services → `us-central1`**: Agent Engine, Memory Bank, Firestore, Model Armor.
+- **Model Armor gcloud needs a regional endpoint override** or it fakes a PERMISSION_DENIED
+  (baked into `infra/audit/01_model_armor.sh`).
+- **Agent Engine's ambient `GOOGLE_CLOUD_PROJECT` is the project NUMBER**; Firestore needs
+  the ID — code resolves via `GATEHOUSE_PROJECT` (never trust a numeric project env).
+- Firestore vectors: 768 dims pinned (cap 2048; model default 3072); indexes per-collection.
 
-## Katie — D2/D3
+## Live resources
 
-- Morning sync: confirm decision gate, divide D3 (orchestrator + security-reviewer +
-  dpa-legal-reviewer per plan §4). ~~Author the Acme corpus~~ **done overnight** — D3
-  starts at chunk/embed/seed from `corpus/manifest.json`.
-- Registry note for D3: "publish an agent" = create a **Service** record (`agents` is
-  read/search-only); create flags captured in the D1 audit output.
-- Tidies: remove redundant `modelarmor.admin` grant; confirm $150 hackathon credits landed.
+- **Cloud Run:** `gatehouse-intake` (Model Armor inline; evidence ids on responses) ·
+  `gatehouse-dispatch` (fleet dispatch, approval gate, `/approved` → enablement)
+- **Agent Engine:** `3060061256623849472` gatehouse-review-fleet (also hosts Memory Bank) ·
+  `1286768903346716672` gatehouse-enablement · `5146129483631165440` audit engine (D1)
+- **Pub/Sub:** `vendor-docs-received` (+`-dispatch` push, `-debug`) · `vendor-approved`
+  (+`-enable` push, `-debug`) — 600s acks; redelivery is the retry story
+- **Firestore:** `corpus_chunks` (31 chunks, 768-dim COSINE index) · `vendors` ·
+  `provisioning_tickets` / `training_modules` / `comms_drafts` (enablement receipts) · `audit_chunks`
+- **Agent Registry:** Service records for intake + review fleet (enablement pending)
+- **Model Armor:** template `ma-audit` @ us-central1 (filter V1 → LEGACY 9/1; pin if touched)
 
-## Endpoint topology — the D1 discoveries (read before debugging "permissions")
+## Next up
 
-- **Gemini models + embeddings → the `global` endpoint** (`GOOGLE_CLOUD_LOCATION=global`). Regional 404s.
-- **Platform services → `us-central1`**: Agent Engine/Runtime, Memory Bank, Firestore, Model Armor.
-- **Model Armor's gcloud surface needs a regional endpoint override** or it returns a
-  *misleading* `PERMISSION_DENIED` — override baked into `infra/audit/01_model_armor.sh`.
-- Firestore vectors: **768 dims pinned** (hard cap 2048; gemini-embedding-001 defaults 3072).
-  Vector indexes are per-collection; a failed query prints the exact create command.
-
-## Live resources (created during the audit — build against these)
-
-- Agent Engine (bare; hosts Memory Bank): **`5146129483631165440`** @ us-central1
-- Model Armor template: **`ma-audit`** @ us-central1 (pi/jailbreak; filter V1 → LEGACY
-  2026-09-01 — pin the version when wiring for real)
-- Firestore: `audit_chunks` collection + 768-dim COSINE vector index
+1. **Agent Identity denied-read beat** — the one remaining feature (auth-providers create
+   flags captured in the D1 audit); holds a demo-beat slot.
+2. Registry Service record for the enablement engine.
+3. **Hardening:** dispatcher retry on the fleet path (pattern proven live on `/approved`);
+   pollard `redact()` on PII fields; CI replay test against the golden db + verify/seal.
+4. Ratify the `take_action` pattern (implemented in `agents/enablement/agent.py` with a live
+   refusal test) and wire the second billing-alert channel.
+5. **Freeze Thu 12:00**, then: failure-path polish, GCP-proof capture, final architecture
+   diagram (SOLID v3 →), demo beat-sheet dry run, clean-clone repro test, ≤4:00 video,
+   Devpost + blog (disclosure line) + #AllThingsAgenticHackathon post, teardown, **submit 8/31**.
 
 ## Layout
 
-- `corpus/` — **the Acme demo corpus**: SOC 2 (the MFA finding), dual pen tests (the
-  0.347-vs-0.932 freshness trap), DPA (invariant clauses), poisoned doc (injection
-  payload — do NOT strip it, it IS the demo), distractor, ISO cert + `manifest.json`
-  wiring every doc to its fact_type and expected gate behavior
-- `contracts/` — «Reviewer» / «Enablement» protocols + contract tests (the SOLID diagram points here)
-- `retrieval/validity.py` — chronofy temporal-validity gate (freshness trap proven in `tests/test_validity.py`)
-- `agents/hello/` — ADK smoke agent; real agents land D3
-- `spikes/pollard_spike.py` — one Gemini call as a content-addressed pollard node (mock + live)
-- `infra/audit/` — the D1 sweep: 01 Model Armor · 02 Runtime · 03 Memory Bank · 04 vector search · 05 registry/identity/gateway probes
-- `evidence/` — pollard SQLite stores (gitignored; goldens promoted deliberately on D8)
+- `agents/review_fleet/` — orchestrator + security + DPA reviewers (SequentialAgent); opens a
+  pollard run per review; persists findings to Memory Bank on close
+- `agents/enablement/` — ONE agent, THREE registered actions via generic `take_action`;
+  recall is a ledgered node; module generation conditioned on recalled findings
+- `actions/` — the ActionSpec firewall: `retrieve_evidence@1` (phase 1) + `enablement.py`
+  (recall/ticket/module/comms specs); `approve_vendor` forever absent by design
+- `ledger/` — pollard Runtime per phase, content-free `[otel]` spans (`tracing.py`), review +
+  enablement run lifecycles
+- `memorybank/` — the cross-session bridge (store findings / recall findings; per-vendor scope)
+- `retrieval/` — chunker + schema (`store.py`), validity gate (`validity.py`), gated retriever
+  (`search.py`)
+- `services/intake/` · `services/dispatcher/` — the Cloud Run edge and the event spine
+- `corpus/` — synthetic Acme docs + manifest (poisoned doc payload is the demo — don't strip)
+- `infra/` — audit scripts (01–05) + deploy/wire scripts (intake, runtime, enablement, approved)
+- `evidence/` — pollard stores (gitignored except `golden/`) · `docs/assets/` — demo evidence
+- `GEAP-AUDIT.md` — 7/7 verdict table + the findings log worth reading first
