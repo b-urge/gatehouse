@@ -15,7 +15,7 @@ Docs home: https://docs.cloud.google.com/gemini-enterprise-agent-platform
 | 4 | Agent Identity | Two service accounts; one denied read via IAM | GREEN | Standard IAM — expected GREEN |
 | 5 | Agent Gateway | Route one call through gateway with a policy | GREEN | Fallback: policy check in orchestrator, documented as such |
 | 6 | Model Armor | `gcloud services enable modelarmor.googleapis.com`; screen one test string | GREEN | Fallback: Gemini safety settings + explicit screening prompt, honestly labeled |
-| 7 | Agent Observability | Hello-world span visible in Cloud Trace | WIRED (local-verified; Cloud Trace check pending fleet deploy) | Cloud Trace + [otel] from pollard — `ledger/tracing.py`; flip to GREEN once a `execute_tool retrieve_evidence` span shows in the Trace explorer (HANDOFF-KATIE.md step D) |
+| 7 | Agent Observability | Hello-world span visible in Cloud Trace | GREEN | Cloud Trace + [otel] from pollard — `ledger/tracing.py`; verified in Cloud Trace 2026-08-26 after the live e2e run (see findings log) |
 
 Audit method: open the component quickstart from the docs home, run its first
 *mutating* step (not just the read), log the result + timestamp + error text.
