@@ -2,3 +2,4 @@ flask>=3
 gunicorn>=21
 google-auth>=2.30
 requests>=2.31
+google-cloud-pubsub>=2.21
