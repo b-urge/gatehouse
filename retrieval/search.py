@@ -107,7 +107,6 @@ class SearchFn(Protocol):
 
 def _default_embed_fn() -> Callable[[str, str], list[float]]:
     """Live query embedding via gemini-embedding-001 on the global endpoint."""
-    import os
 
     from dotenv import load_dotenv
     from google import genai
@@ -133,7 +132,6 @@ def _default_embed_fn() -> Callable[[str, str], list[float]]:
 
 def _default_search_fn() -> SearchFn:
     """Live nearest-neighbor over Firestore's native vector index."""
-    import os
 
     from dotenv import load_dotenv
     from google.cloud import firestore
