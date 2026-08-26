@@ -3,3 +3,4 @@ chronofy==0.1.9
 pollard==1.5.1
 python-dotenv>=1.0
 google-cloud-firestore>=2.16
+google-adk[otel-gcp]==2.7.1
