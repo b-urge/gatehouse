@@ -1,0 +1,203 @@
+{
+  "format": "pollard/subtree/v1",
+  "nodes": [
+    {
+      "attempt": 0,
+      "id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+      "kind": "root",
+      "meta": "{\"registry_digest\":\"8dc1857e719278cfed2f582b71f96fee0187bfad38058522bc0d2251327e1ffa\"}",
+      "parent": null,
+      "payload": "{\"run\":\"review:acme-saas-inc:golden\"}",
+      "result": null,
+      "result_digest": null
+    },
+    {
+      "attempt": 0,
+      "id": "639b9e2839212bf12a9dd846fa107a4dcb6bb6d2a298e16f49d1cca6817f7c0e",
+      "kind": "note",
+      "meta": "{\"created_at\":\"2026-08-28T20:43:30.506483Z\"}",
+      "parent": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+      "payload": "{\"kind\":\"review_opened\",\"query_time\":\"2026-08-28T16:43:29\",\"vendor_id\":\"acme-saas-inc\"}",
+      "result": null,
+      "result_digest": null
+    },
+    {
+      "attempt": 0,
+      "id": "688a357d6c88bef820b8acb6eb01f4997082f69a5b475aed97b3c45e76397d92",
+      "kind": "model_call",
+      "meta": "{\"charges\":{\"seconds\":2.667016815394163e-06,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.575740Z\",\"duration_s\":2.667016815394163e-06,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "parent": "639b9e2839212bf12a9dd846fa107a4dcb6bb6d2a298e16f49d1cca6817f7c0e",
+      "payload": "{\"agent\":\"security_reviewer\",\"config\":{\"system_instruction\":\"You are the security reviewer in a vendor-risk fleet. Use search_vendor_evidence (2-3 targeted queries: SOC 2 exceptions, pen test findings, MFA/access control). Ground every finding ONLY in valid_evidence; cite chunk doc_id + issued date in the rationale. For every pruned_notice, emit a separate finding with control='EVIDENCE-STALE', severity='medium', recommending re-acquisition. Output ONLY a JSON list of findings, each shaped exactly like: {\\\"control\\\": \\\"<control or clause id, e.g. CC6.1 or DPA \\\\u00a74.1>\\\", \\\"severity\\\": \\\"low | medium | high\\\", \\\"rationale\\\": \\\"<one or two sentences grounded in retrieved evidence>\\\", \\\"policy_clause\\\": \\\"<the clause/criterion this was scored against>\\\", \\\"evidence_node\\\": \\\"<evidence_node id from the search tool result>\\\"}\\n\\nYou are an agent. Your internal name is \\\"security_reviewer\\\". The description about you is \\\"Reviews vendor security posture from SOC 2 / pen test evidence.\\\".\",\"tools\":[{\"function_declarations\":[{\"description\":\"Search the vendor evidence corpus. Returns only temporally valid chunks,\\nplus explicit notices for any evidence pruned as stale (do NOT rely on\\npruned evidence; surface each notice as a re-acquisition finding). Every\\nsearch is recorded in the evidence ledger: cite the returned evidence_node\\nid in each finding it grounds.\",\"name\":\"search_vendor_evidence\",\"parameters_json_schema\":{\"properties\":{\"query\":{\"title\":\"Query\",\"type\":\"string\"}},\"required\":[\"query\"],\"title\":\"search_vendor_evidenceParams\",\"type\":\"object\"},\"response_json_schema\":{\"additionalProperties\":true,\"type\":\"object\"}}]}]},\"contents\":[{\"parts\":[{\"text\":\"Review vendor acme-saas-inc.\"}],\"role\":\"user\"}],\"model\":\"scripted\"}",
+      "result": "{\"response\":{\"content\":{\"parts\":[{\"function_call\":{\"args\":{\"query\":\"MFA and access control\"},\"name\":\"search_vendor_evidence\"}}],\"role\":\"model\"}},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "result_digest": "f56514de7aa9b5e7e64ce77dcc52960019db3467e633abd6cb923e265604d773"
+    },
+    {
+      "attempt": 0,
+      "id": "2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918",
+      "kind": "tool_call",
+      "meta": "{\"charges\":{\"seconds\":0.0003165840171277523,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.578303Z\",\"duration_s\":0.0003165840171277523}",
+      "parent": "688a357d6c88bef820b8acb6eb01f4997082f69a5b475aed97b3c45e76397d92",
+      "payload": "{\"args\":{\"k\":6,\"query\":\"MFA and access control\",\"query_time\":\"2026-08-28T16:43:29\"},\"registry_digest\":\"8dc1857e719278cfed2f582b71f96fee0187bfad38058522bc0d2251327e1ffa\",\"spec_digest\":\"b2dd537bc3882847872e13f456ad60d15073ad09dde1faa4cd9bcaaabb71c8e0\",\"tool\":\"retrieve_evidence\",\"version\":\"1\"}",
+      "result": "{\"pruned_evidence\":[{\"chunk_id\":\"acme-pen-test-2025-02#01\",\"doc_id\":\"acme-pen-test-2025-02\",\"fact_type\":\"pen_test\",\"issued\":\"2025-02-10\",\"validity\":0.342}],\"pruned_notices\":[\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.\"],\"stl_robustness\":0.419,\"stl_satisfied\":true,\"valid_evidence\":[{\"chunk_id\":\"acme-pen-test-2026-07#01\",\"content\":\"MED-1: legacy tier single-factor auth.\",\"doc_id\":\"acme-pen-test-2026-07\",\"fact_type\":\"pen_test\",\"issued\":\"2026-07-15\",\"validity\":0.919}]}",
+      "result_digest": "768542b23920242d301282798998f9c8563095ad76795b7aa15b58c6a1af6f7b"
+    },
+    {
+      "attempt": 0,
+      "id": "577246a7bfb03d6c51dc5427f204f49ae9becad49cc7ecd7a41b646dda4e80c8",
+      "kind": "model_call",
+      "meta": "{\"charges\":{\"seconds\":3.292050678282976e-06,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.585332Z\",\"duration_s\":3.292050678282976e-06,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "parent": "2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918",
+      "payload": "{\"agent\":\"security_reviewer\",\"config\":{\"system_instruction\":\"You are the security reviewer in a vendor-risk fleet. Use search_vendor_evidence (2-3 targeted queries: SOC 2 exceptions, pen test findings, MFA/access control). Ground every finding ONLY in valid_evidence; cite chunk doc_id + issued date in the rationale. For every pruned_notice, emit a separate finding with control='EVIDENCE-STALE', severity='medium', recommending re-acquisition. Output ONLY a JSON list of findings, each shaped exactly like: {\\\"control\\\": \\\"<control or clause id, e.g. CC6.1 or DPA \\\\u00a74.1>\\\", \\\"severity\\\": \\\"low | medium | high\\\", \\\"rationale\\\": \\\"<one or two sentences grounded in retrieved evidence>\\\", \\\"policy_clause\\\": \\\"<the clause/criterion this was scored against>\\\", \\\"evidence_node\\\": \\\"<evidence_node id from the search tool result>\\\"}\\n\\nYou are an agent. Your internal name is \\\"security_reviewer\\\". The description about you is \\\"Reviews vendor security posture from SOC 2 / pen test evidence.\\\".\",\"tools\":[{\"function_declarations\":[{\"description\":\"Search the vendor evidence corpus. Returns only temporally valid chunks,\\nplus explicit notices for any evidence pruned as stale (do NOT rely on\\npruned evidence; surface each notice as a re-acquisition finding). Every\\nsearch is recorded in the evidence ledger: cite the returned evidence_node\\nid in each finding it grounds.\",\"name\":\"search_vendor_evidence\",\"parameters_json_schema\":{\"properties\":{\"query\":{\"title\":\"Query\",\"type\":\"string\"}},\"required\":[\"query\"],\"title\":\"search_vendor_evidenceParams\",\"type\":\"object\"},\"response_json_schema\":{\"additionalProperties\":true,\"type\":\"object\"}}]}]},\"contents\":[{\"parts\":[{\"text\":\"Review vendor acme-saas-inc.\"}],\"role\":\"user\"},{\"parts\":[{\"function_call\":{\"args\":{\"query\":\"MFA and access control\"},\"name\":\"search_vendor_evidence\"}}],\"role\":\"model\"},{\"parts\":[{\"function_response\":{\"name\":\"search_vendor_evidence\",\"response\":{\"evidence_node\":\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\",\"pruned_evidence\":[{\"chunk_id\":\"acme-pen-test-2025-02#01\",\"doc_id\":\"acme-pen-test-2025-02\",\"fact_type\":\"pen_test\",\"issued\":\"2025-02-10\",\"validity\":\"0.342\"}],\"pruned_notices\":[\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.\"],\"stl_robustness\":\"0.419\",\"stl_satisfied\":true,\"valid_evidence\":[{\"chunk_id\":\"acme-pen-test-2026-07#01\",\"content\":\"MED-1: legacy tier single-factor auth.\",\"doc_id\":\"acme-pen-test-2026-07\",\"fact_type\":\"pen_test\",\"issued\":\"2026-07-15\",\"validity\":\"0.919\"}]}}}],\"role\":\"user\"}],\"model\":\"scripted\"}",
+      "result": "{\"response\":{\"content\":{\"parts\":[{\"text\":\"[{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}]\"}],\"role\":\"model\"}},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "result_digest": "2b62660365fd00182302e8c6a42cc627608aaee83e711cc8eb530af53775a356"
+    },
+    {
+      "attempt": 0,
+      "id": "fe58c2b2553467df47c1c0a92b9a2e3fa08a86dd933a63331a62a63722b33077",
+      "kind": "model_call",
+      "meta": "{\"charges\":{\"seconds\":2.6669586077332497e-06,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.589149Z\",\"duration_s\":2.6669586077332497e-06,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "parent": "577246a7bfb03d6c51dc5427f204f49ae9becad49cc7ecd7a41b646dda4e80c8",
+      "payload": "{\"agent\":\"dpa_legal_reviewer\",\"config\":{\"system_instruction\":\"You are the DPA/legal reviewer in a vendor-risk fleet. Use search_vendor_evidence (queries on: data residency, subprocessors, breach notification). policy_clause fact_type evidence is invariant - treat clause text as authoritative. Flag any gap between DPA commitments and other evidence. Ground every finding in valid_evidence with doc_id citations. Output ONLY a JSON list of findings, each shaped exactly like: {\\\"control\\\": \\\"<control or clause id, e.g. CC6.1 or DPA \\\\u00a74.1>\\\", \\\"severity\\\": \\\"low | medium | high\\\", \\\"rationale\\\": \\\"<one or two sentences grounded in retrieved evidence>\\\", \\\"policy_clause\\\": \\\"<the clause/criterion this was scored against>\\\", \\\"evidence_node\\\": \\\"<evidence_node id from the search tool result>\\\"}\\n\\nYou are an agent. Your internal name is \\\"dpa_legal_reviewer\\\". The description about you is \\\"Reviews the vendor DPA: residency, subprocessors, breach terms.\\\".\",\"tools\":[{\"function_declarations\":[{\"description\":\"Search the vendor evidence corpus. Returns only temporally valid chunks,\\nplus explicit notices for any evidence pruned as stale (do NOT rely on\\npruned evidence; surface each notice as a re-acquisition finding). Every\\nsearch is recorded in the evidence ledger: cite the returned evidence_node\\nid in each finding it grounds.\",\"name\":\"search_vendor_evidence\",\"parameters_json_schema\":{\"properties\":{\"query\":{\"title\":\"Query\",\"type\":\"string\"}},\"required\":[\"query\"],\"title\":\"search_vendor_evidenceParams\",\"type\":\"object\"},\"response_json_schema\":{\"additionalProperties\":true,\"type\":\"object\"}}]}]},\"contents\":[{\"parts\":[{\"text\":\"Review vendor acme-saas-inc.\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] called tool `search_vendor_evidence` with parameters: {'query': 'MFA and access control'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] `search_vendor_evidence` tool returned result: {'pruned_evidence': [{'chunk_id': 'acme-pen-test-2025-02#01', 'doc_id': 'acme-pen-test-2025-02', 'fact_type': 'pen_test', 'issued': '2025-02-10', 'validity': 0.342}], 'pruned_notices': ['acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.'], 'stl_robustness': 0.419, 'stl_satisfied': True, 'valid_evidence': [{'chunk_id': 'acme-pen-test-2026-07#01', 'content': 'MED-1: legacy tier single-factor auth.', 'doc_id': 'acme-pen-test-2026-07', 'fact_type': 'pen_test', 'issued': '2026-07-15', 'validity': 0.919}], 'evidence_node': '2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] said: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}]\"}],\"role\":\"user\"}],\"model\":\"scripted\"}",
+      "result": "{\"response\":{\"content\":{\"parts\":[{\"function_call\":{\"args\":{\"query\":\"MFA and access control\"},\"name\":\"search_vendor_evidence\"}}],\"role\":\"model\"}},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "result_digest": "f56514de7aa9b5e7e64ce77dcc52960019db3467e633abd6cb923e265604d773"
+    },
+    {
+      "attempt": 0,
+      "id": "b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df",
+      "kind": "tool_call",
+      "meta": "{\"charges\":{\"seconds\":8.25420138426125e-05,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.591126Z\",\"duration_s\":8.25420138426125e-05}",
+      "parent": "fe58c2b2553467df47c1c0a92b9a2e3fa08a86dd933a63331a62a63722b33077",
+      "payload": "{\"args\":{\"k\":6,\"query\":\"MFA and access control\",\"query_time\":\"2026-08-28T16:43:29\"},\"registry_digest\":\"8dc1857e719278cfed2f582b71f96fee0187bfad38058522bc0d2251327e1ffa\",\"spec_digest\":\"b2dd537bc3882847872e13f456ad60d15073ad09dde1faa4cd9bcaaabb71c8e0\",\"tool\":\"retrieve_evidence\",\"version\":\"1\"}",
+      "result": "{\"pruned_evidence\":[{\"chunk_id\":\"acme-pen-test-2025-02#01\",\"doc_id\":\"acme-pen-test-2025-02\",\"fact_type\":\"pen_test\",\"issued\":\"2025-02-10\",\"validity\":0.342}],\"pruned_notices\":[\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.\"],\"stl_robustness\":0.419,\"stl_satisfied\":true,\"valid_evidence\":[{\"chunk_id\":\"acme-pen-test-2026-07#01\",\"content\":\"MED-1: legacy tier single-factor auth.\",\"doc_id\":\"acme-pen-test-2026-07\",\"fact_type\":\"pen_test\",\"issued\":\"2026-07-15\",\"validity\":0.919}]}",
+      "result_digest": "768542b23920242d301282798998f9c8563095ad76795b7aa15b58c6a1af6f7b"
+    },
+    {
+      "attempt": 0,
+      "id": "a8b889064ac13fa215cf16573713886c2ac221a40fac705fb38b57b3ab6f5788",
+      "kind": "model_call",
+      "meta": "{\"charges\":{\"seconds\":2.874992787837982e-06,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.595450Z\",\"duration_s\":2.874992787837982e-06,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "parent": "b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df",
+      "payload": "{\"agent\":\"dpa_legal_reviewer\",\"config\":{\"system_instruction\":\"You are the DPA/legal reviewer in a vendor-risk fleet. Use search_vendor_evidence (queries on: data residency, subprocessors, breach notification). policy_clause fact_type evidence is invariant - treat clause text as authoritative. Flag any gap between DPA commitments and other evidence. Ground every finding in valid_evidence with doc_id citations. Output ONLY a JSON list of findings, each shaped exactly like: {\\\"control\\\": \\\"<control or clause id, e.g. CC6.1 or DPA \\\\u00a74.1>\\\", \\\"severity\\\": \\\"low | medium | high\\\", \\\"rationale\\\": \\\"<one or two sentences grounded in retrieved evidence>\\\", \\\"policy_clause\\\": \\\"<the clause/criterion this was scored against>\\\", \\\"evidence_node\\\": \\\"<evidence_node id from the search tool result>\\\"}\\n\\nYou are an agent. Your internal name is \\\"dpa_legal_reviewer\\\". The description about you is \\\"Reviews the vendor DPA: residency, subprocessors, breach terms.\\\".\",\"tools\":[{\"function_declarations\":[{\"description\":\"Search the vendor evidence corpus. Returns only temporally valid chunks,\\nplus explicit notices for any evidence pruned as stale (do NOT rely on\\npruned evidence; surface each notice as a re-acquisition finding). Every\\nsearch is recorded in the evidence ledger: cite the returned evidence_node\\nid in each finding it grounds.\",\"name\":\"search_vendor_evidence\",\"parameters_json_schema\":{\"properties\":{\"query\":{\"title\":\"Query\",\"type\":\"string\"}},\"required\":[\"query\"],\"title\":\"search_vendor_evidenceParams\",\"type\":\"object\"},\"response_json_schema\":{\"additionalProperties\":true,\"type\":\"object\"}}]}]},\"contents\":[{\"parts\":[{\"text\":\"Review vendor acme-saas-inc.\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] called tool `search_vendor_evidence` with parameters: {'query': 'MFA and access control'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] `search_vendor_evidence` tool returned result: {'pruned_evidence': [{'chunk_id': 'acme-pen-test-2025-02#01', 'doc_id': 'acme-pen-test-2025-02', 'fact_type': 'pen_test', 'issued': '2025-02-10', 'validity': 0.342}], 'pruned_notices': ['acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.'], 'stl_robustness': 0.419, 'stl_satisfied': True, 'valid_evidence': [{'chunk_id': 'acme-pen-test-2026-07#01', 'content': 'MED-1: legacy tier single-factor auth.', 'doc_id': 'acme-pen-test-2026-07', 'fact_type': 'pen_test', 'issued': '2026-07-15', 'validity': 0.919}], 'evidence_node': '2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] said: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}]\"}],\"role\":\"user\"},{\"parts\":[{\"function_call\":{\"args\":{\"query\":\"MFA and access control\"},\"name\":\"search_vendor_evidence\"}}],\"role\":\"model\"},{\"parts\":[{\"function_response\":{\"name\":\"search_vendor_evidence\",\"response\":{\"evidence_node\":\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\",\"pruned_evidence\":[{\"chunk_id\":\"acme-pen-test-2025-02#01\",\"doc_id\":\"acme-pen-test-2025-02\",\"fact_type\":\"pen_test\",\"issued\":\"2025-02-10\",\"validity\":\"0.342\"}],\"pruned_notices\":[\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.\"],\"stl_robustness\":\"0.419\",\"stl_satisfied\":true,\"valid_evidence\":[{\"chunk_id\":\"acme-pen-test-2026-07#01\",\"content\":\"MED-1: legacy tier single-factor auth.\",\"doc_id\":\"acme-pen-test-2026-07\",\"fact_type\":\"pen_test\",\"issued\":\"2026-07-15\",\"validity\":\"0.919\"}]}}}],\"role\":\"user\"}],\"model\":\"scripted\"}",
+      "result": "{\"response\":{\"content\":{\"parts\":[{\"text\":\"[{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}]\"}],\"role\":\"model\"}},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "result_digest": "4e795b4bc7a39c9ef68e4ff755d618bf98278dd6704aa204258e588231f345c9"
+    },
+    {
+      "attempt": 0,
+      "id": "c33fad989534d2c38638fbadd7f7fa05a495ed22ca035a65c344ec9450f31657",
+      "kind": "model_call",
+      "meta": "{\"charges\":{\"seconds\":2.2500171326100826e-06,\"steps\":1},\"created_at\":\"2026-08-28T20:43:30.600125Z\",\"duration_s\":2.2500171326100826e-06,\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "parent": "a8b889064ac13fa215cf16573713886c2ac221a40fac705fb38b57b3ab6f5788",
+      "payload": "{\"agent\":\"review_synthesizer\",\"config\":{\"system_instruction\":\"Assemble the final vendor review. Security findings: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}]. DPA findings: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}]. Deduplicate, then compute risk_score in [0,1]: start 0.1, +0.15 per medium, +0.3 per high, +0.1 per EVIDENCE-STALE, cap 1.0. Output ONLY JSON: {\\\"vendor_id\\\": \\\"acme-saas-inc\\\", \\\"evidence_run\\\": \\\"b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20\\\", \\\"findings\\\": [...], \\\"risk_score\\\": <float>} - findings keep the exact input shape.\\n\\nYou are an agent. Your internal name is \\\"review_synthesizer\\\". The description about you is \\\"Assembles the fleet's findings into one ReviewResult.\\\".\"},\"contents\":[{\"parts\":[{\"text\":\"Review vendor acme-saas-inc.\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] called tool `search_vendor_evidence` with parameters: {'query': 'MFA and access control'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] `search_vendor_evidence` tool returned result: {'pruned_evidence': [{'chunk_id': 'acme-pen-test-2025-02#01', 'doc_id': 'acme-pen-test-2025-02', 'fact_type': 'pen_test', 'issued': '2025-02-10', 'validity': 0.342}], 'pruned_notices': ['acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.'], 'stl_robustness': 0.419, 'stl_satisfied': True, 'valid_evidence': [{'chunk_id': 'acme-pen-test-2026-07#01', 'content': 'MED-1: legacy tier single-factor auth.', 'doc_id': 'acme-pen-test-2026-07', 'fact_type': 'pen_test', 'issued': '2026-07-15', 'validity': 0.919}], 'evidence_node': '2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[security_reviewer] said: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}]\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[dpa_legal_reviewer] called tool `search_vendor_evidence` with parameters: {'query': 'MFA and access control'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[dpa_legal_reviewer] `search_vendor_evidence` tool returned result: {'pruned_evidence': [{'chunk_id': 'acme-pen-test-2025-02#01', 'doc_id': 'acme-pen-test-2025-02', 'fact_type': 'pen_test', 'issued': '2025-02-10', 'validity': 0.342}], 'pruned_notices': ['acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 — request updated evidence.'], 'stl_robustness': 0.419, 'stl_satisfied': True, 'valid_evidence': [{'chunk_id': 'acme-pen-test-2026-07#01', 'content': 'MED-1: legacy tier single-factor auth.', 'doc_id': 'acme-pen-test-2026-07', 'fact_type': 'pen_test', 'issued': '2026-07-15', 'validity': 0.919}], 'evidence_node': 'b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df'}\"}],\"role\":\"user\"},{\"parts\":[{\"text\":\"For context:\"},{\"text\":\"[dpa_legal_reviewer] said: [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}]\"}],\"role\":\"user\"}],\"model\":\"scripted\"}",
+      "result": "{\"response\":{\"content\":{\"parts\":[{\"text\":\"{\\\"vendor_id\\\": \\\"acme-saas-inc\\\", \\\"evidence_run\\\": \\\"b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20\\\", \\\"findings\\\": [{\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\"}, {\\\"control\\\": \\\"CC6.1\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"severity\\\": \\\"medium\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\"}], \\\"risk_score\\\": 0.9}\"}],\"role\":\"model\"}},\"usage\":{\"input_tokens\":0,\"output_tokens\":0}}",
+      "result_digest": "f1e85e97f66a4b5fa177bceb2f2ac709b036e63ad4b8b76335d19f7e0829fdfc"
+    },
+    {
+      "attempt": 0,
+      "id": "23f1cd557f664ac85ad5804faec00128ba3c2044a11d87cb96b434d7c491a02d",
+      "kind": "note",
+      "meta": "{\"created_at\":\"2026-08-28T20:43:30.600908Z\"}",
+      "parent": "c33fad989534d2c38638fbadd7f7fa05a495ed22ca035a65c344ec9450f31657",
+      "payload": "{\"kind\":\"review_result\",\"review_result\":\"{\\\"evidence_run\\\": \\\"b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20\\\", \\\"findings\\\": [{\\\"control\\\": \\\"CC6.1\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"severity\\\": \\\"medium\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"evidence_node\\\": \\\"2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"severity\\\": \\\"medium\\\"}, {\\\"control\\\": \\\"CC6.1\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\", \\\"policy_clause\\\": \\\"SOC 2 CC6.1\\\", \\\"rationale\\\": \\\"MED-1: legacy tier single-factor auth.\\\", \\\"severity\\\": \\\"medium\\\"}, {\\\"control\\\": \\\"EVIDENCE-STALE\\\", \\\"evidence_node\\\": \\\"b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df\\\", \\\"policy_clause\\\": \\\"evidence freshness\\\", \\\"rationale\\\": \\\"acme-pen-test-2025-02 (pen_test, issued 2025-02-10) pruned: validity 0.342 < 0.5 \\\\u2014 request updated evidence.\\\", \\\"severity\\\": \\\"medium\\\"}], \\\"risk_score\\\": 0.9, \\\"vendor_id\\\": \\\"acme-saas-inc\\\"}\",\"vendor_id\":\"acme-saas-inc\"}",
+      "result": null,
+      "result_digest": null
+    }
+  ],
+  "root_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+  "seal": {
+    "algorithm": "sha256:pollard/v1:seal",
+    "digest": "ceaa5b6d8b4924e2f5f11ac2249ea603f878ae1b05ffc264494e43a85145385d",
+    "entries": [
+      {
+        "index": 0,
+        "kind": "root",
+        "node_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+        "parent_id": null,
+        "previous": null,
+        "result_digest": null,
+        "seal": "43788211c18363ba19202e437e59a15d585560a25d70b1f7d6a93cc13dab34b1"
+      },
+      {
+        "index": 1,
+        "kind": "note",
+        "node_id": "639b9e2839212bf12a9dd846fa107a4dcb6bb6d2a298e16f49d1cca6817f7c0e",
+        "parent_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+        "previous": "43788211c18363ba19202e437e59a15d585560a25d70b1f7d6a93cc13dab34b1",
+        "result_digest": null,
+        "seal": "0f23490400c20e2c914be1c0f2eaabd4db6a5b0585308d007873527cae1b822b"
+      },
+      {
+        "index": 2,
+        "kind": "model_call",
+        "node_id": "688a357d6c88bef820b8acb6eb01f4997082f69a5b475aed97b3c45e76397d92",
+        "parent_id": "639b9e2839212bf12a9dd846fa107a4dcb6bb6d2a298e16f49d1cca6817f7c0e",
+        "previous": "0f23490400c20e2c914be1c0f2eaabd4db6a5b0585308d007873527cae1b822b",
+        "result_digest": "f56514de7aa9b5e7e64ce77dcc52960019db3467e633abd6cb923e265604d773",
+        "seal": "96780aa5640f543db2630e7a4a7a688e2cf9bb437107bd3334e584bbfc617c88"
+      },
+      {
+        "index": 3,
+        "kind": "tool_call",
+        "node_id": "2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918",
+        "parent_id": "688a357d6c88bef820b8acb6eb01f4997082f69a5b475aed97b3c45e76397d92",
+        "previous": "96780aa5640f543db2630e7a4a7a688e2cf9bb437107bd3334e584bbfc617c88",
+        "result_digest": "768542b23920242d301282798998f9c8563095ad76795b7aa15b58c6a1af6f7b",
+        "seal": "ab5f0d213555f78af262c81bf8fc64b78e29c24249e5f44b2b87021fe3ef445b"
+      },
+      {
+        "index": 4,
+        "kind": "model_call",
+        "node_id": "577246a7bfb03d6c51dc5427f204f49ae9becad49cc7ecd7a41b646dda4e80c8",
+        "parent_id": "2dbca7fe8e04b2f6ba871dbe44b048442840996e8902885f4b34ab9fdf8be918",
+        "previous": "ab5f0d213555f78af262c81bf8fc64b78e29c24249e5f44b2b87021fe3ef445b",
+        "result_digest": "2b62660365fd00182302e8c6a42cc627608aaee83e711cc8eb530af53775a356",
+        "seal": "af1ffd4754fea34dfd6c44ddc92f0f828d684724b4e6b79d46930ea2e7d90f24"
+      },
+      {
+        "index": 5,
+        "kind": "model_call",
+        "node_id": "fe58c2b2553467df47c1c0a92b9a2e3fa08a86dd933a63331a62a63722b33077",
+        "parent_id": "577246a7bfb03d6c51dc5427f204f49ae9becad49cc7ecd7a41b646dda4e80c8",
+        "previous": "af1ffd4754fea34dfd6c44ddc92f0f828d684724b4e6b79d46930ea2e7d90f24",
+        "result_digest": "f56514de7aa9b5e7e64ce77dcc52960019db3467e633abd6cb923e265604d773",
+        "seal": "1d26f9f387b87372895b61d03410896d0a3d232733acef40610252afc351332c"
+      },
+      {
+        "index": 6,
+        "kind": "tool_call",
+        "node_id": "b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df",
+        "parent_id": "fe58c2b2553467df47c1c0a92b9a2e3fa08a86dd933a63331a62a63722b33077",
+        "previous": "1d26f9f387b87372895b61d03410896d0a3d232733acef40610252afc351332c",
+        "result_digest": "768542b23920242d301282798998f9c8563095ad76795b7aa15b58c6a1af6f7b",
+        "seal": "098d46b56c1e6ff862b58e4b0897eb20e18158cd6e272469134849b78383099c"
+      },
+      {
+        "index": 7,
+        "kind": "model_call",
+        "node_id": "a8b889064ac13fa215cf16573713886c2ac221a40fac705fb38b57b3ab6f5788",
+        "parent_id": "b52bc46103f885538f9c98a67e0a9903238005225ead36d77e173a2eda9c95df",
+        "previous": "098d46b56c1e6ff862b58e4b0897eb20e18158cd6e272469134849b78383099c",
+        "result_digest": "4e795b4bc7a39c9ef68e4ff755d618bf98278dd6704aa204258e588231f345c9",
+        "seal": "8cee20788be9d5b715e1f27ef9186aff95124d3774f5fe6748bddd4223ed810f"
+      },
+      {
+        "index": 8,
+        "kind": "model_call",
+        "node_id": "c33fad989534d2c38638fbadd7f7fa05a495ed22ca035a65c344ec9450f31657",
+        "parent_id": "a8b889064ac13fa215cf16573713886c2ac221a40fac705fb38b57b3ab6f5788",
+        "previous": "8cee20788be9d5b715e1f27ef9186aff95124d3774f5fe6748bddd4223ed810f",
+        "result_digest": "f1e85e97f66a4b5fa177bceb2f2ac709b036e63ad4b8b76335d19f7e0829fdfc",
+        "seal": "7a689559d60ba4f815bfcda3339075ecaf85729845f9dddb2976d4fcb8d6d886"
+      },
+      {
+        "index": 9,
+        "kind": "note",
+        "node_id": "23f1cd557f664ac85ad5804faec00128ba3c2044a11d87cb96b434d7c491a02d",
+        "parent_id": "c33fad989534d2c38638fbadd7f7fa05a495ed22ca035a65c344ec9450f31657",
+        "previous": "7a689559d60ba4f815bfcda3339075ecaf85729845f9dddb2976d4fcb8d6d886",
+        "result_digest": null,
+        "seal": "ceaa5b6d8b4924e2f5f11ac2249ea603f878ae1b05ffc264494e43a85145385d"
+      }
+    ],
+    "root_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20"
+  }
+}

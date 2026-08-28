@@ -1,0 +1,21 @@
+{
+  "label": "review:acme-saas-inc:golden",
+  "root_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
+  "vendor_id": "acme-saas-inc",
+  "query_time": "2026-08-28T16:43:29",
+  "prompt": "Review vendor acme-saas-inc.",
+  "model": "scripted",
+  "environment": {
+    "GOOGLE_GENAI_USE_VERTEXAI": "TRUE"
+  },
+  "seal": {
+    "algorithm": "sha256:pollard/v1:seal",
+    "digest": "ceaa5b6d8b4924e2f5f11ac2249ea603f878ae1b05ffc264494e43a85145385d"
+  },
+  "nodes": 10,
+  "spent": {
+    "seconds": 0.00041287706699222326,
+    "steps": 7.0
+  },
+  "recorded_at": "2026-08-28T16:43:33"
+}
