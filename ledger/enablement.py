@@ -4,7 +4,8 @@ Mirrors `ledger` (phase 1) with its own Runtime built on the enablement
 registry: memory recall is the read-only `recall_findings@1` node, and each of
 the three side effects is a TOOL_CALL node whose id is the action's receipt.
 An unregistered name — `approve_vendor` included — becomes a REFUSAL node via
-`EnablementRun.act`, which is the live registry-firewall beat.
+`EnablementRun.act`, which is the live registry-firewall beat. Closing the run
+seals it (rolling SHA-256 + custody), exactly like a phase-1 review.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from pollard.runtime import Run
 
 from actions.enablement import ACTION_VERSIONS, build_enablement_registry, default_handlers
 from ledger import _strip_fences  # same fence-stripping as phase 1 verdict notes
+from ledger.seal import seal_review
 
 DEFAULT_DB = "evidence/enablement.db"
 
@@ -147,7 +149,13 @@ def close_enablement_run(
                 "enablement_result": _strip_fences(enablement_result),
             }
         )
-    return {"root_id": er.root_id, "label": er.run.label, **er.run.report()}
+    publish = runtime_enablement().mode != ReplayMode.REPLAY
+    return {
+        "root_id": er.root_id,
+        "label": er.run.label,
+        **er.run.report(),
+        "seal": seal_review(er.root_id, store=er.run.store, publish=publish),
+    }
 
 
 __all__ = [

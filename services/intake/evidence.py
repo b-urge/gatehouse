@@ -14,6 +14,8 @@ Actions:
                       and the ledger shows the screen was unavailable.
   publish_intake@1    side effect. Clean docs onto Pub/Sub -> {message_id}.
 
+Every response carries the run's seal digest (`pollard seal` reproduces it).
+
 Store: $GATEHOUSE_EVIDENCE_DB (sqlite) when set, else in-memory — Cloud Run's
 filesystem is ephemeral, so durability on the cloud side is the node id in the
 response/event plus the content-free Cloud Trace export.
@@ -25,7 +27,7 @@ import os
 from pathlib import Path
 from typing import Any, Callable
 
-from pollard import ActionSpec, MemoryStore, Node, Registry, Runtime
+from pollard import ActionSpec, MemoryStore, Node, Registry, Runtime, seal
 from pollard.meters import DepthMeter, StepMeter, WallClockMeter
 from pollard.runtime import Run
 
@@ -133,3 +135,8 @@ def record_screening(run: Run, *, vendor_id: str, doc_id: str, text: str) -> Nod
 
 def record_publish(run: Run, event: dict[str, Any]) -> Node:
     return run.tool_call(PUBLISH_INTAKE, event, version=VERSION)
+
+
+def seal_digest(run: Run) -> str:
+    """Rolling SHA-256 over the request's run — re-validates every node on the way."""
+    return seal(run.store, run.root_id).digest

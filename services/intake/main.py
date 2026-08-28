@@ -30,9 +30,15 @@ from flask import Flask, jsonify, request
 from pollard import Runtime
 
 try:  # package context (tests: services.intake.main)
-    from .evidence import build_runtime, intake_label, record_publish, record_screening
+    from .evidence import (
+        build_runtime,
+        intake_label,
+        record_publish,
+        record_screening,
+        seal_digest,
+    )
 except ImportError:  # Cloud Run buildpack context (gunicorn main:app, CWD=services/intake)
-    from evidence import build_runtime, intake_label, record_publish, record_screening
+    from evidence import build_runtime, intake_label, record_publish, record_screening, seal_digest
 
 PROJECT = os.environ.get("GOOGLE_CLOUD_PROJECT", "gatehouse-hackathon")
 LOCATION = os.environ.get("MA_LOCATION", "us-central1")
@@ -161,6 +167,7 @@ def intake():
         return jsonify(
             {"accepted": False, "reason": decision["reason"], "verdict": verdict, "doc_id": doc_id}
             | ledger_refs
+            | {"seal": seal_digest(run)}
         ), 403
 
     published = record_publish(
@@ -171,6 +178,7 @@ def intake():
     return jsonify(
         {"accepted": True, "doc_id": doc_id, "message_id": published.result["message_id"]}
         | ledger_refs
+        | {"seal": seal_digest(run)}
     ), 202
 
 

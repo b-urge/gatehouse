@@ -142,7 +142,7 @@ def test_fleet_records_every_search_and_findings_cite_real_nodes():
         assert node.payload["args"]["query_time"] == NOW
     assert any(f["control"] == "EVIDENCE-STALE" for f in security)  # the freshness trap fired
 
-    assert state["evidence_report"]["spent"]["steps"] == 2.0
+    assert state["evidence_report"]["spent"]["steps"] == 7.0  # 5 model calls + 2 searches
     assert ledger.get_review_run(state["evidence_report"]["root_id"]) is None
 
 
@@ -154,12 +154,20 @@ def test_verdict_is_noted_under_the_run_and_carries_the_run_id():
     assert f'"evidence_run": "{root_id}"' in state["review_result"]
     assert '"vendor_id": "acme-saas-inc"' in state["review_result"]
 
-    # Walk the trunk: root -> search -> search -> verdict note.
+    # Walk the trunk: opened -> (ask, search, answer) x2 reviewers -> synthesis -> verdict.
     trunk, cursor = [], root_id
     while children := store.children(cursor):
         cursor = children[0]
         trunk.append(store.get(cursor))
     kinds = [n.kind for n in trunk]
-    assert kinds == [NodeKind.TOOL_CALL, NodeKind.TOOL_CALL, NodeKind.NOTE]
+    ask, search, note = NodeKind.MODEL_CALL, NodeKind.TOOL_CALL, NodeKind.NOTE
+    assert kinds == [note, ask, search, ask, ask, search, ask, ask, note]
+    assert trunk[0].payload == {
+        "kind": "review_opened", "vendor_id": "acme-saas-inc", "query_time": NOW
+    }
+    assert [n.payload["agent"] for n in trunk if n.kind == ask] == [
+        "security_reviewer", "security_reviewer", "dpa_legal_reviewer", "dpa_legal_reviewer",
+        "review_synthesizer",
+    ]
     assert trunk[-1].payload["kind"] == "review_result"
     assert root_id in trunk[-1].payload["review_result"]

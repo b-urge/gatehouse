@@ -132,3 +132,36 @@ goes through the registry. That's also the shape phase 2's Enablement agent need
 2. `take_action` + phase-2 action specs per the open question above.
 3. Model-call recording via ADK `before/after_model_callback` (the plan's timeboxed stretch).
 4. README: replace the D2 checklist with the evidence-plane layout + inspect commands.
+
+---
+
+# Update 2 (8/28, the merge of `feature/replay` × your main drop)
+
+Your enablement + Memory Bank + dispatcher approval landed while this branch was in
+flight — we built phase-2 twice in parallel. Resolution, in your favor:
+
+- **Your `actions/enablement.py` and `ledger/enablement.py` are canonical, verbatim.** My
+  parallel versions and their spike/tests are deleted. Your agent, schemas, Firestore
+  handlers, and recall-as-a-ledgered-node are untouched.
+- **One capability ported in: closing an enablement run now seals it** — same rolling
+  SHA-256 + append-only custody log as reviews (`evidence/seals.db`), replay re-derives
+  without attesting — and your agent's close prints the `sealed …` line. Your
+  `test_enablement_agent.py` passes unchanged (the seal rides the report additively).
+- **What this branch adds underneath you** (no interface changes): every Gemini call in the
+  fleet is a `model_call` node, so a recorded review replays offline end to end with the
+  model and retriever provably unreached; every review close seals; tests are isolated from
+  `evidence/*.db` via a conftest fixture.
+
+Two sync topics, ten minutes total:
+
+1. **Golden re-record.** `evidence/golden/review-acme-golden.db` predates model-call
+   recording, so it can't drive the full offline replay. After this merges, one live run
+   with `GATEHOUSE_RUN_LABEL` + `GATEHOUSE_QUERY_TIME` set becomes the real fixture — I'll
+   have `spikes/record_golden.py` ready so your part is a single command.
+2. **Dry-run approval preview** (plan §5's literal wording: "intended side-effectful actions
+   recorded, not executed; human approves; actions execute"). Your dispatcher gate approves
+   the *vendor*; the plan also previews the *actions*. My deleted branch ran the enablement
+   agent on a `dry_run=True` runtime with an ApprovalGate policy — it's in this branch's git
+   history if we decide we want it as an env-flagged mode. Your call; not a merge decision.
+
+

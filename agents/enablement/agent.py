@@ -60,8 +60,14 @@ def close_enablement(callback_context: CallbackContext) -> None:
         return None
     callback_context.state["enablement_report"] = report
     db = os.environ.get("GATEHOUSE_ENABLEMENT_DB", enledger.DEFAULT_DB)
+    sealed = report["seal"]
+    custody = sealed.get("custody")
+    attested = (
+        f"custody #{custody['sequence']} by {custody['signer']}" if custody else "unpublished"
+    )
     print(
         f"[ledger] {report['label']} spent={report['spent']} avoided={report['avoided']}\n"
+        f"[ledger] sealed {sealed['digest']} ({sealed['nodes']} nodes; {attested})\n"
         f"[ledger] pollard show {db} {report['root_id']}"
     )
     return None
