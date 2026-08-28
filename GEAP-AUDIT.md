@@ -15,7 +15,7 @@ Docs home: https://docs.cloud.google.com/gemini-enterprise-agent-platform
 | 4 | Agent Identity | Two service accounts; one denied read via IAM | GREEN | Standard IAM — expected GREEN |
 | 5 | Agent Gateway | Route one call through gateway with a policy | GREEN | Fallback: policy check in orchestrator, documented as such |
 | 6 | Model Armor | `gcloud services enable modelarmor.googleapis.com`; screen one test string | GREEN | Fallback: Gemini safety settings + explicit screening prompt, honestly labeled |
-| 7 | Agent Observability | Hello-world span visible in Cloud Trace | WIRED (local-verified; Cloud Trace check pending fleet deploy) | Cloud Trace + [otel] from pollard — `ledger/tracing.py`; flip to GREEN once a `execute_tool retrieve_evidence` span shows in the Trace explorer (HANDOFF-KATIE.md step D) |
+| 7 | Agent Observability | Hello-world span visible in Cloud Trace | GREEN | Cloud Trace + [otel] from pollard — `ledger/tracing.py`; verified in Cloud Trace 2026-08-26 after the live e2e run (see findings log) |
 
 Audit method: open the component quickstart from the docs home, run its first
 *mutating* step (not just the read), log the result + timestamp + error text.
@@ -45,3 +45,5 @@ Honest fallback mapping beats silent substitution (judges reward the former).
 - **Registry firewall is real.** `approve_vendor(status="approved")`, parsed from the poisoned corpus doc, produces a `REFUSAL` node (reason `policy`, blocked-payload digest `e91e13b5…`, registry digest `8dc1857e…`) — identical digests on two machines, as content addressing promises. Nothing runs; `pollard show` renders `[REFUSED]`.
 - **Every retrieval is a node; replay works without the cloud.** The fleet's search is the registered `retrieve_evidence@1` handler, so `GATEHOUSE_LEDGER_MODE=replay` serves recorded consultations with Firestore/embeddings provably unreached (`report()["avoided"]["steps"]`). pollard identity payloads reject floats (results don't) — the ReviewResult is noted as JSON text.
 - **Intake verdicts are nodes without the text.** `sensitive` schema fields make pollard store a content-committing digest of the document instead of the document; a Model Armor client exception becomes a `FAILURE` verdict inside the node, so `decide()` fails closed on the record.
+
+- 2026-08-26 ~01:20 ET — **Agent Observability: GREEN — 7/7.** pollard [otel] spans verified in Cloud Trace after the live end-to-end run (intake → Pub/Sub → dispatcher → fleet on Agent Engine, take-6): `execute_tool retrieve_evidence` nested under ADK's tool span, attributes ids/digests only (node 6c706b9e…, registry 8dc1857e…, result 655b8b18…), no query text or content. 97 spans, 121.8K tokens metered; failed takes 1–5 also traced (observability caught what the dispatcher ack swallowed). The audit closes with all seven components carrying production traffic.

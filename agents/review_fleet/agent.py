@@ -35,6 +35,7 @@ from google.adk.tools.tool_context import ToolContext
 from pollard import PolicyViolation
 
 import ledger
+import memorybank
 from contracts.reviewer import Finding, ReviewResult  # noqa: F401  (contract this fleet honors)
 from ledger import adk as ledger_adk
 
@@ -86,6 +87,28 @@ def close_ledger(callback_context: CallbackContext) -> None:
         f"[ledger] sealed {sealed['digest']} ({sealed['nodes']} nodes; {attested})\n"
         f"[ledger] pollard show {db} {report['root_id']}"
     )
+    return None
+
+
+async def finalize(callback_context: CallbackContext) -> None:
+    """Close the ledger, then persist findings to Memory Bank (phase-2 bridge).
+    Memory failures warn and never fail the review; unset engine = no-op."""
+    close_ledger(callback_context)
+    review_json = callback_context.state.get("review_result")
+    if not (memorybank.memory_engine_id() and review_json):
+        return None
+    try:
+        review = json.loads(ledger._strip_fences(review_json))
+        count = await memorybank.store_findings(
+            callback_context.state.get("vendor_id", "unknown"),
+            review.get("findings", []),
+            callback_context.state.get("evidence_run", "unknown"),
+        )
+        print(f"[memory] stored {count} finding(s) for {callback_context.state.get('vendor_id')}")
+    except Exception as e:  # noqa: BLE001 - the bridge must never sink the review
+        import warnings
+
+        warnings.warn(f"memory bridge store failed: {e}", RuntimeWarning, stacklevel=2)
     return None
 
 
@@ -181,7 +204,7 @@ def build_fleet(model: str | BaseLlm = MODEL) -> SequentialAgent:
         description="Gatehouse phase-1 review fleet: security -> DPA -> synthesis.",
         sub_agents=[security_reviewer, dpa_legal_reviewer, review_synthesizer],
         before_agent_callback=open_ledger,
-        after_agent_callback=close_ledger,
+        after_agent_callback=finalize,
     )
 
 

@@ -135,52 +135,33 @@ goes through the registry. That's also the shape phase 2's Enablement agent need
 
 ---
 
-# Update (8/25 night, branch `feature/replay`): items 1-3 above are DONE; here's your D6 socket
+# Update 2 (8/28, the merge of `feature/replay` × your main drop)
 
-Since the first handoff: every Gemini call is now a `model_call` node (a recorded review
-replays offline end to end — `tests/test_model_calls.py` proves it with an exploding model
-and retriever), every closed run is **sealed** (rolling SHA-256 + append-only custody log in
-`evidence/seals.db`; tamper-edited ledgers refuse to seal), and **phase 2's approval flow
-exists and is tested**. Run `python spikes/approval_spike.py` to watch the whole lifecycle.
+Your enablement + Memory Bank + dispatcher approval landed while this branch was in
+flight — we built phase-2 twice in parallel. Resolution, in your favor:
 
-## The Enablement agent's interface (build against this)
+- **Your `actions/enablement.py` and `ledger/enablement.py` are canonical, verbatim.** My
+  parallel versions and their spike/tests are deleted. Your agent, schemas, Firestore
+  handlers, and recall-as-a-ledgered-node are untouched.
+- **One capability ported in: closing an enablement run now seals it** — same rolling
+  SHA-256 + append-only custody log as reviews (`evidence/seals.db`), replay re-derives
+  without attesting — and your agent's close prints the `sealed …` line. Your
+  `test_enablement_agent.py` passes unchanged (the seal rides the report additively).
+- **What this branch adds underneath you** (no interface changes): every Gemini call in the
+  fleet is a `model_call` node, so a recorded review replays offline end to end with the
+  model and retriever provably unreached; every review close seals; tests are isolated from
+  `evidence/*.db` via a conftest fixture.
 
-Your agent gets ONE tool. Its runtime is `dry_run=True`, so it is *structurally incapable*
-of side effects — no instruction wording carries that burden:
+Two sync topics, ten minutes total:
 
-```python
-from ledger.enablement import open_enablement_run
+1. **Golden re-record.** `evidence/golden/review-acme-golden.db` predates model-call
+   recording, so it can't drive the full offline replay. After this merges, one live run
+   with `GATEHOUSE_RUN_LABEL` + `GATEHOUSE_QUERY_TIME` set becomes the real fixture — I'll
+   have `spikes/record_golden.py` ready so your part is a single command.
+2. **Dry-run approval preview** (plan §5's literal wording: "intended side-effectful actions
+   recorded, not executed; human approves; actions execute"). Your dispatcher gate approves
+   the *vendor*; the plan also previews the *actions*. My deleted branch ran the enablement
+   agent on a `dry_run=True` runtime with an ApprovalGate policy — it's in this branch's git
+   history if we decide we want it as an env-flagged mode. Your call; not a merge decision.
 
-def take_action(action: str, args: dict, tool_context: ToolContext) -> dict:
-    """Perform a registered enablement action. Returns status executed|recorded_intent|refused."""
-    run = ...  # get-or-open keyed by tool_context.invocation_id (mirror agent.py's _vendor_id/review_run_for pattern)
-    return run.take_action(action, args)
-```
-
-Registered actions (`actions/enablement.py`, schemas strict, `additionalProperties: false`):
-
-| action | args | side effect | dry-pass behaviour |
-|---|---|---|---|
-| `provision_access@1` | `{vendor_id, systems[], justification}` | yes | `recorded_intent` (no handler runs) |
-| `generate_training@1` | `{vendor_id, topics[], audience}` | no | `executed` — real outline back |
-| `draft_rollout_comms@1` | `{vendor_id, summary, channels[]}` | no | `executed` — real draft back |
-
-Anything else — `approve_vendor` included — comes back `{"status": "refused", "node": <refusal id>}`.
-
-## The approval flow (who calls what)
-
-1. **Agent (yours):** `open_enablement_run(invocation_id, vendor_id, review_root=<review root id>)`
-   then `take_action(...)` per the model's decisions. The opening note pins the review's root
-   AND its seal digest (re-derived at open — a tampered review refuses right there).
-2. **Human:** `ledger.enablement.approval_transcript(root_id)` → intended side effects + the
-   real drafts. Show it however you like; the spike prints it.
-3. **Human-triggered code:** `approve_and_execute(label, approved_by="<who>")` — writes the
-   approval note, executes each intent (`ApprovalGate` policy: side effects DENIED unless an
-   approval note is an ancestor), seals, publishes custody. Simulated handlers return
-   deterministic tickets (`TCK-…`); swap in real Firestore writes via
-   `build_enablement_registry(provision=...)` when you want them.
-
-The risk threshold ("risk > 0.4 → human approval") from the plan lives in your gateway logic:
-below threshold you may call `approve_and_execute(label, approved_by="auto:policy<0.4")`
-directly; above it, a person does. Either way the approval note names who.
 

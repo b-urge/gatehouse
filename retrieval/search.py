@@ -30,6 +30,16 @@ from retrieval.store import (
 from retrieval.validity import DECAY, gate, verify_freshness
 
 
+def _project_id() -> str:
+    """Agent Engine's ambient GOOGLE_CLOUD_PROJECT is the project NUMBER, which
+    Firestore's (default)-database routing rejects. Prefer our own var, refuse
+    numeric ids, fall back to the literal project id."""
+    import os
+
+    p = os.environ.get("GATEHOUSE_PROJECT") or os.environ.get("GOOGLE_CLOUD_PROJECT", "")
+    return p if p and not p.isdigit() else "gatehouse-hackathon"
+
+
 @dataclass(frozen=True)
 class Hit:
     chunk_id: str
@@ -97,7 +107,6 @@ class SearchFn(Protocol):
 
 def _default_embed_fn() -> Callable[[str, str], list[float]]:
     """Live query embedding via gemini-embedding-001 on the global endpoint."""
-    import os
 
     from dotenv import load_dotenv
     from google import genai
@@ -106,7 +115,7 @@ def _default_embed_fn() -> Callable[[str, str], list[float]]:
     load_dotenv("agents/hello/.env")
     client = genai.Client(
         vertexai=True,
-        project=os.environ["GOOGLE_CLOUD_PROJECT"],
+        project=_project_id(),
         location=MODEL_LOCATION,
     )
 
@@ -123,7 +132,6 @@ def _default_embed_fn() -> Callable[[str, str], list[float]]:
 
 def _default_search_fn() -> SearchFn:
     """Live nearest-neighbor over Firestore's native vector index."""
-    import os
 
     from dotenv import load_dotenv
     from google.cloud import firestore
@@ -131,7 +139,7 @@ def _default_search_fn() -> SearchFn:
     from google.cloud.firestore_v1.vector import Vector
 
     load_dotenv("agents/hello/.env")
-    db = firestore.Client(project=os.environ["GOOGLE_CLOUD_PROJECT"])
+    db = firestore.Client(project=_project_id())
 
     def search(query_vector: list[float], k: int) -> list[dict]:
         hits = (
