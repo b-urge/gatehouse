@@ -6,6 +6,7 @@ Skips cleanly in CI (google-adk isn't installed there)."""
 
 import asyncio
 import json
+import re
 
 import pytest
 
@@ -44,8 +45,9 @@ FAKE_HITS = [
 
 class ScriptedLlm(BaseLlm):
     """Reviewer turn 1: search. Turn 2: one finding citing the node it was handed.
-    Synthesizer: echo the rendered instruction's JSON skeleton so we can check
-    the state templating."""
+    Synthesizer: parse the findings ADK templated into the instruction and emit a
+    real ReviewResult JSON, scored by the instruction's own formula — the same
+    shape live Gemini produces, so scripted recordings replay like real ones."""
 
     model: str = "scripted"
 
@@ -79,8 +81,23 @@ class ScriptedLlm(BaseLlm):
             part = types.Part(text=json.dumps([finding, *stale]))
         else:
             instruction = llm_request.config.system_instruction
-            skeleton = instruction[instruction.index("Output ONLY JSON:") + 17 :].strip()
-            part = types.Part(text=skeleton)
+            lists = re.search(
+                r"Security findings: (\[.*?\])\. DPA findings: (\[.*?\])\. Deduplicate",
+                instruction,
+                re.DOTALL,
+            )
+            findings = [f for raw in lists.groups() for f in json.loads(raw)]
+            risk = 0.1
+            for f in findings:
+                risk += {"medium": 0.15, "high": 0.3}.get(f["severity"], 0.0)
+                risk += 0.1 if f["control"] == "EVIDENCE-STALE" else 0.0
+            result = {
+                "vendor_id": re.search(r'"vendor_id": "([^"]*)"', instruction).group(1),
+                "evidence_run": re.search(r'"evidence_run": "([^"]*)"', instruction).group(1),
+                "findings": findings,
+                "risk_score": round(min(risk, 1.0), 2),
+            }
+            part = types.Part(text=json.dumps(result))
         yield LlmResponse(content=types.Content(role="model", parts=[part]))
 
 
