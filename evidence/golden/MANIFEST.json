@@ -2,20 +2,21 @@
   "label": "review:acme-saas-inc:golden",
   "root_id": "b1fc3cba2a86ab3e6d21317861d7e1cea3d334690e5640b94e1dd82747c33e20",
   "vendor_id": "acme-saas-inc",
-  "query_time": "2026-08-28T16:43:29",
+  "query_time": "2026-08-28T16:55:03",
   "prompt": "Review vendor acme-saas-inc.",
-  "model": "scripted",
+  "model": "gemini-3.5-flash",
   "environment": {
     "GOOGLE_GENAI_USE_VERTEXAI": "TRUE"
   },
   "seal": {
     "algorithm": "sha256:pollard/v1:seal",
-    "digest": "ceaa5b6d8b4924e2f5f11ac2249ea603f878ae1b05ffc264494e43a85145385d"
+    "digest": "680de404fb1daa734c5b5c9723939226d07aaa73a4c0adb6df3c117de07ff1e5"
   },
-  "nodes": 10,
+  "nodes": 32,
   "spent": {
-    "seconds": 0.00041287706699222326,
-    "steps": 7.0
+    "seconds": 30.97964383586077,
+    "steps": 29.0,
+    "tokens": 110874.0
   },
-  "recorded_at": "2026-08-28T16:43:33"
+  "recorded_at": "2026-08-28T16:57:37"
 }

@@ -8,3 +8,4 @@ evidence/*.db
 .ruff_cache/
 .adk/
 .DS_Store
+/handoff-docs.zip
