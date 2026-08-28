@@ -18,7 +18,7 @@ risk-threshold approval, a `vendor-approved` event, and an enablement run that r
 findings from Memory Bank and executes three registered actions with Firestore receipts.
 First full lap completed 8/26 — via Pub/Sub redelivery after two transient faults, i.e. the
 pipeline **self-healed**. All **7/7 GEAP components GREEN** and load-bearing
-(`GEAP-AUDIT.md`, findings log included). ~50 tests green; CI runs a slim env by design.
+(`GEAP-AUDIT.md`, findings log included). ~60 tests green; CI runs a slim env by design.
 
 ## The beats, and how to see them
 
@@ -41,9 +41,44 @@ pipeline **self-healed**. All **7/7 GEAP components GREEN** and load-bearing
 - **Cloud lifecycle e2e:** POST a clean doc to the intake URL, then
   `gcloud run services logs read gatehouse-dispatch --region us-central1` — the four-line
   story: `fleet done` → `approval: APPROVED … published` → `enable: …` → `enablement done`.
-- **Golden run:** `evidence/golden/review-acme-golden.db` (`golden-acme-v1`, 17 nodes,
-  query_time pinned) — inspect with `pollard runs` / `pollard show`; offline replay wiring
-  is in progress (below).
+- **Tamper-evident seal** — every closed run (review *and* enablement) prints
+  `[ledger] sealed <sha256> (N nodes; custody #k by <who>)`; edit one recorded byte in the
+  db and sealing raises `IntegrityError` naming the node (`tests/test_seal.py`).
+- **Offline replay** — the whole review rerun from the sealed golden export with zero
+  credentials: `pytest --pollard-mode=replay` (section below; the committed fixture lands
+  with the golden re-record — `review-acme-golden.db` predates model-call nodes).
+
+## Reproduce the review offline (the killer move)
+
+The golden review is recorded **once** against live Gemini + Firestore, exported as a
+sealed, self-contained subtree (`evidence/golden/acme-saas-inc.pollard` + `MANIFEST.json`),
+and committed. From then on anyone with a clean clone — no credentials, no spend — reruns
+the *entire* fleet:
+
+```bash
+pytest --pollard-mode=replay tests/test_golden_replay.py -q
+```
+
+What that test does: imports the export into a scratch db (**the import re-derives the seal
+and refuses a tampered file before writing a single node**), then drives the real
+SequentialAgent fleet with a model and a retriever that *raise if touched* — every Gemini
+response and every retrieval is served from the ledger — and asserts the replay lands on
+the same ReviewResult, every cited `evidence_node` resolves, the pinned `query_time` comes
+back from the recording itself, and the run seals to the **manifest's exact digest**.
+
+Poke at the artifact by hand (`root_id` is in `MANIFEST.json`):
+
+```bash
+pollard import evidence/golden/acme-saas-inc.pollard /tmp/golden.db
+pollard show /tmp/golden.db <root_id> --payloads     # the whole review, node by node
+pollard seal /tmp/golden.db <root_id>                # reprints the manifest digest
+```
+
+Recording is one command — `python spikes/record_golden.py` — which pins the label, the
+as-of time, and the request-shaping environment into the manifest (Vertex vs AI-Studio
+changes ADK's tool declarations, which are part of model-call identity) and refuses to
+clobber an existing recording. `--scripted` rehearses the full record→export→replay
+pipeline with zero spend.
 
 ## Setup (clean clone)
 
@@ -85,7 +120,8 @@ ruff check . && pytest -q     # house rule: this gate before every commit
    flags captured in the D1 audit); holds a demo-beat slot.
 2. Registry Service record for the enablement engine.
 3. **Hardening:** dispatcher retry on the fleet path (pattern proven live on `/approved`);
-   pollard `redact()` on PII fields; CI replay test against the golden db + verify/seal.
+   pollard `redact()` on PII fields; **golden re-record** — `python spikes/record_golden.py`,
+   one live run (replay + seal machinery is merged; `--scripted` rehearses it end to end).
 4. Ratify the `take_action` pattern (implemented in `agents/enablement/agent.py` with a live
    refusal test) and wire the second billing-alert channel.
 5. **Freeze Thu 12:00**, then: failure-path polish, GCP-proof capture, final architecture
@@ -101,7 +137,10 @@ ruff check . && pytest -q     # house rule: this gate before every commit
 - `actions/` — the ActionSpec firewall: `retrieve_evidence@1` (phase 1) + `enablement.py`
   (recall/ticket/module/comms specs); `approve_vendor` forever absent by design
 - `ledger/` — pollard Runtime per phase, content-free `[otel]` spans (`tracing.py`), review +
-  enablement run lifecycles
+  enablement run lifecycles; model-call record/replay (`adk.py`); rolling-SHA-256 seal +
+  append-only custody (`seal.py`)
+- `spikes/` — runnable beats: `refusal_spike.py` (`--trace` prints the Cloud Trace spans),
+  `record_golden.py` (the golden recorder; `--scripted` = zero-spend rehearsal)
 - `memorybank/` — the cross-session bridge (store findings / recall findings; per-vendor scope)
 - `retrieval/` — chunker + schema (`store.py`), validity gate (`validity.py`), gated retriever
   (`search.py`)
