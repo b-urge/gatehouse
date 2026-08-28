@@ -132,3 +132,55 @@ goes through the registry. That's also the shape phase 2's Enablement agent need
 2. `take_action` + phase-2 action specs per the open question above.
 3. Model-call recording via ADK `before/after_model_callback` (the plan's timeboxed stretch).
 4. README: replace the D2 checklist with the evidence-plane layout + inspect commands.
+
+---
+
+# Update (8/25 night, branch `feature/replay`): items 1-3 above are DONE; here's your D6 socket
+
+Since the first handoff: every Gemini call is now a `model_call` node (a recorded review
+replays offline end to end — `tests/test_model_calls.py` proves it with an exploding model
+and retriever), every closed run is **sealed** (rolling SHA-256 + append-only custody log in
+`evidence/seals.db`; tamper-edited ledgers refuse to seal), and **phase 2's approval flow
+exists and is tested**. Run `python spikes/approval_spike.py` to watch the whole lifecycle.
+
+## The Enablement agent's interface (build against this)
+
+Your agent gets ONE tool. Its runtime is `dry_run=True`, so it is *structurally incapable*
+of side effects — no instruction wording carries that burden:
+
+```python
+from ledger.enablement import open_enablement_run
+
+def take_action(action: str, args: dict, tool_context: ToolContext) -> dict:
+    """Perform a registered enablement action. Returns status executed|recorded_intent|refused."""
+    run = ...  # get-or-open keyed by tool_context.invocation_id (mirror agent.py's _vendor_id/review_run_for pattern)
+    return run.take_action(action, args)
+```
+
+Registered actions (`actions/enablement.py`, schemas strict, `additionalProperties: false`):
+
+| action | args | side effect | dry-pass behaviour |
+|---|---|---|---|
+| `provision_access@1` | `{vendor_id, systems[], justification}` | yes | `recorded_intent` (no handler runs) |
+| `generate_training@1` | `{vendor_id, topics[], audience}` | no | `executed` — real outline back |
+| `draft_rollout_comms@1` | `{vendor_id, summary, channels[]}` | no | `executed` — real draft back |
+
+Anything else — `approve_vendor` included — comes back `{"status": "refused", "node": <refusal id>}`.
+
+## The approval flow (who calls what)
+
+1. **Agent (yours):** `open_enablement_run(invocation_id, vendor_id, review_root=<review root id>)`
+   then `take_action(...)` per the model's decisions. The opening note pins the review's root
+   AND its seal digest (re-derived at open — a tampered review refuses right there).
+2. **Human:** `ledger.enablement.approval_transcript(root_id)` → intended side effects + the
+   real drafts. Show it however you like; the spike prints it.
+3. **Human-triggered code:** `approve_and_execute(label, approved_by="<who>")` — writes the
+   approval note, executes each intent (`ApprovalGate` policy: side effects DENIED unless an
+   approval note is an ancestor), seals, publishes custody. Simulated handlers return
+   deterministic tickets (`TCK-…`); swap in real Firestore writes via
+   `build_enablement_registry(provision=...)` when you want them.
+
+The risk threshold ("risk > 0.4 → human approval") from the plan lives in your gateway logic:
+below threshold you may call `approve_and_execute(label, approved_by="auto:policy<0.4")`
+directly; above it, a person does. Either way the approval note names who.
+
