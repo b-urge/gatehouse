@@ -10,17 +10,24 @@ with a cryptographic receipt for every step.
 > Firestore finds what's similar; chronofy decides what's still true enough to rely on;
 > pollard proves what was consulted.
 
+## Try it live
+
+**[https://gatehouse-intake-cbk2rg5qgq-uc.a.run.app/](https://gatehouse-intake-cbk2rg5qgq-uc.a.run.app/)** — the hosted console. Submit a **poisoned** document and watch
+Model Armor block it with a cryptographic receipt; submit a **clean** one and the
+full autonomous lifecycle (review fleet → approval gate → enablement) runs on Agent
+Engine over the next few minutes. The side panel explains every field in the receipt.
+
 **Status:** the full lifecycle runs unattended in the cloud (first lap completed itself via
 Pub/Sub redelivery after two transient faults — it self-heals), all **7/7 GEAP components
 GREEN** and load-bearing (`GEAP-AUDIT.md`), and the committed golden review **replays offline
-to the same seal digest** from a clean clone.
+to the same seal digest** from a clean clone. The intake console is **hosted and public** (link above).
 
 ## Features and functionality
 
 - **Guarded intake (Cloud Run + Model Armor, inline, fail-closed).** Every document is
   screened before it becomes an event. A prompt-injected document gets a 403 with the named
   filter verdict — and even the rejection carries evidence ids (`screen_node`, `intake_run`).
-  Document text never enters the ledger; digests only.
+  Document text never enters the ledger; digests only. A hosted **live console** (`GET /`) lets anyone fire both cases from a browser.
 - **Three-agent review fleet (Agent Engine).** Security → DPA/legal → synthesis over a
   SequentialAgent. Retrieval is **temporally validity-gated**: a clean-but-18-months-old pen
   test decays below threshold, gets pruned, and the reviewer files an `EVIDENCE-STALE`
