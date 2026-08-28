@@ -154,10 +154,12 @@ flight — we built phase-2 twice in parallel. Resolution, in your favor:
 
 Two sync topics, ten minutes total:
 
-1. **Golden re-record.** `evidence/golden/review-acme-golden.db` predates model-call
-   recording, so it can't drive the full offline replay. After this merges, one live run
-   with `GATEHOUSE_RUN_LABEL` + `GATEHOUSE_QUERY_TIME` set becomes the real fixture — I'll
-   have `spikes/record_golden.py` ready so your part is a single command.
+1. **Golden re-record — machinery is now in the repo; your part is one command.**
+   `evidence/golden/review-acme-golden.db` predates model-call recording, so it can't
+   drive the full offline replay. Instead: `python spikes/record_golden.py` (one live
+   fleet run; refuses to clobber; `--scripted` is the no-spend pipeline check) → commit
+   `evidence/golden/*` → `pytest --pollard-mode=replay` replays your real Gemini review
+   offline to the same seal digest. That's the closing line of the demo.
 2. **Dry-run approval preview** (plan §5's literal wording: "intended side-effectful actions
    recorded, not executed; human approves; actions execute"). Your dispatcher gate approves
    the *vendor*; the plan also previews the *actions*. My deleted branch ran the enablement
