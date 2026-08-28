@@ -4,7 +4,7 @@ fails closed on the record, and clean docs chain screen -> publish with both
 ids riding the response and the event."""
 
 import pytest
-from pollard import NodeKind
+from pollard import NodeKind, seal
 from pollard.redaction import is_redacted
 
 from services.intake.evidence import build_runtime, intake_label, record_screening
@@ -82,6 +82,8 @@ def test_route_chains_screen_and_publish_and_hands_out_the_ids(monkeypatch):
     assert store.children(screen.id) == []  # nothing was published under the poisoned run
 
     assert accepted["message_id"] == "msg-7"
+    assert blocked["seal"] == seal(store, blocked["intake_run"]).digest
+    assert accepted["seal"] == seal(store, accepted["intake_run"]).digest
     (publish_id,) = store.children(accepted["screen_node"])
     publish = store.get(publish_id)
     assert publish.payload["tool"] == "publish_intake"

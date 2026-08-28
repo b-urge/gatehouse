@@ -13,6 +13,7 @@ Environment (all optional):
                           (golden runs; default: now, pinned once per review)
   GATEHOUSE_RUN_LABEL     fixed run label so a golden run can be replayed by name
   GATEHOUSE_LEDGER_TRACE  0 to silence the content-free OpenTelemetry spans (default on)
+  GATEHOUSE_SEAL_DB       seal custody log (default evidence/seals.db; see ledger/seal.py)
 
 Inspect:  pollard runs evidence/runs.db  /  pollard show evidence/runs.db <root-id>
 """
@@ -242,7 +243,14 @@ def close_review_run(invocation_id: str, *, review_result: str | None = None) ->
                 "review_result": _strip_fences(review_result),
             }
         )
-    return {"root_id": review.root_id, "label": review.run.label, **review.run.report()}
+    from ledger.seal import seal_review
+
+    return {
+        "root_id": review.root_id,
+        "label": review.run.label,
+        **review.run.report(),
+        "seal": seal_review(review.root_id, store=review.run.store),
+    }
 
 
 def _strip_fences(text: str) -> str:
