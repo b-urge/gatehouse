@@ -114,7 +114,7 @@ appears anywhere in the system, the ledger, or the traces.
   implementation is canonical, port the missing capability" (the seal) beat renegotiating
   designs mid-sprint.
 
-## Reproduce the review offline (the judge command)
+## Reproduce the review offline
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
